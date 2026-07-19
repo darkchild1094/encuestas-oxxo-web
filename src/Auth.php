@@ -29,7 +29,7 @@ class Auth
     {
         self::iniciar();
         if (empty($_SESSION['usuario_id'])) {
-            header('Location: /login');
+            header('Location: /nps/login');
             exit;
         }
     }

@@ -1,25 +1,20 @@
 <?php
-
 class Database
 {
     private static ?PDO $pdo = null;
-
     public static function conexion(): PDO
     {
         if (self::$pdo === null) {
-            $host = getenv('DB_HOST') ?: '127.0.0.1';
-            $db   = getenv('DB_NAME') ?: 'encuestas_oxxo';
-            $user = getenv('DB_USER') ?: 'root';
-            $pass = getenv('DB_PASS') ?: '';
-
+            $host = 'mysql-fieldserviceplus.alwaysdata.net';
+            $db   = 'fieldserviceplus_nps';
+            $user = 'fieldserviceplus_rahuag';
+            $pass = 'Admin.12';
             $dsn = "mysql:host=$host;dbname=$db;charset=utf8mb4";
-
             self::$pdo = new PDO($dsn, $user, $pass, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]);
         }
-
         return self::$pdo;
     }
 }
