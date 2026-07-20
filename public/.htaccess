@@ -1,13 +1,9 @@
 RewriteEngine On
-
-# Respaldo por si getallheaders() no esta disponible
-CGIPassAuth On
+RewriteBase /nps/
 
 # No tocar archivos reales ni directorios
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 
-# Router: todo va a index.php (menos api que se maneja aparte)
-# El [L] marca como último, el [PT] preserva el tipo para el siguiente handler
-RewriteRule ^(?!api/).*$ index.php [QSA,L]
-
+# Reescribir TODO a index.php
+RewriteRule ^(.*)$ index.php [L,QSA]

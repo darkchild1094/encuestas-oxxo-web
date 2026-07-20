@@ -1,7 +1,1 @@
-# Este archivo NO debe estar aquí en alwaysdata
-# Ya que alwaysdata sirve directamente desde /home/fieldserviceplus/www/nps/public
-# El .htaccess que funciona está en public/.htaccess
-
-# Si Apache de alguna forma llega a este archivo, desactiva rewrite
 RewriteEngine Off
-
