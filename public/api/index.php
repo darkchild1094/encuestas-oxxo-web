@@ -2,7 +2,7 @@
 
 header('Content-Type: application/json; charset=utf-8');
 
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/AuthApiController.php';
 require_once __DIR__ . '/SyncApiController.php';
 require_once __DIR__ . '/CatalogoApiController.php';

@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../../config/database.php';
 
 // Lista de respuestas para el ATI, ya filtrada por sus tiendas
 // asignadas (tienda.asesor_ti_usuario_id) -- mismo criterio que

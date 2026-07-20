@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../../config/database.php';
 
 // Catalogo negocio/region/plaza/tienda para el selector en cascada
 // de la app. Cualquier usuario autenticado puede leerlo (no hace
