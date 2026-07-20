@@ -1,8 +1,13 @@
 RewriteEngine On
 
-# Si la peticion es para la API, no hacer nada aqui y dejar que el .htaccess de api/ o el de la raiz mande
-RewriteRule ^api/ - [L]
+# Respaldo por si getallheaders() no esta disponible
+CGIPassAuth On
 
+# No tocar archivos reales ni directorios
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ index.php [QSA,L]
+
+# Router: todo va a index.php (menos api que se maneja aparte)
+# El [L] marca como último, el [PT] preserva el tipo para el siguiente handler
+RewriteRule ^(?!api/).*$ index.php [QSA,L]
+
