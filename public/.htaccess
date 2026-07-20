@@ -1,5 +1,9 @@
 RewriteEngine On
-RewriteBase /nps/
+
+# Si la peticion es para la API, dejamos que el .htaccess de la carpeta api/ lo maneje
+RewriteCond %{REQUEST_URI} ^.*/api/ [NC]
+RewriteRule ^ - [L]
+
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]

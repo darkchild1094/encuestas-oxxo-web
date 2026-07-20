@@ -7,4 +7,4 @@ CGIPassAuth On
 # Redirige todo lo que no sea un archivo real al index.php (el router)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . index.php [QSA,L]
+RewriteRule ^ index.php [QSA,L]

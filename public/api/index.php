@@ -10,11 +10,13 @@ require_once __DIR__ . '/RespuestaApiController.php';
 require_once __DIR__ . '/UsuarioApiController.php';
 require_once __DIR__ . '/PreguntaApiController.php';
 
-$prefijo = rtrim(str_replace('\\', '/', dirname(dirname($_SERVER['SCRIPT_NAME']))), '/');
-$ruta = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-if ($prefijo !== '' && str_starts_with($ruta, $prefijo)) {
-    $ruta = substr($ruta, strlen($prefijo));
+// Detectar la ruta quitando todo lo que este antes de /api/
+$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$ruta = $uri;
+if (preg_match('#(/api/.*)$#', $uri, $m)) {
+    $ruta = $m[1];
 }
+
 $metodo = $_SERVER['REQUEST_METHOD'];
 
 // Router simple con soporte para IDs en la URL
@@ -62,6 +64,6 @@ if (isset($rutas[$clave])) {
         'error' => 'ruta no encontrada',
         'metodo' => $metodo,
         'ruta' => $ruta,
-        'prefijo' => $prefijo
+        'uri_original' => $uri
     ]);
 }
