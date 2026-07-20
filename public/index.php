@@ -1,6 +1,18 @@
 <?php
-ini_set('display_errors', 1);
+// En desarrollo, mostrar errores. En producción (alwaysdata), cambiar a 0.
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 error_reporting(E_ALL);
+
+// Intentar crear directorio de sesiones si no existe
+$sessionDir = sys_get_temp_dir() . '/nps_sessions';
+if (!is_dir($sessionDir)) {
+    @mkdir($sessionDir, 0755, true);
+}
+if (is_writable($sessionDir)) {
+    ini_set('session.save_path', $sessionDir);
+}
+
 require_once __DIR__ . '/../controllers/AuthController.php';
 require_once __DIR__ . '/../controllers/UsuarioController.php';
 require_once __DIR__ . '/../controllers/PreguntaController.php';

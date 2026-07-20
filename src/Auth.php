@@ -29,7 +29,9 @@ class Auth
     {
         self::iniciar();
         if (empty($_SESSION['usuario_id'])) {
-            header('Location: /nps/login');
+            // Usar BASE_URL si está definido, sino usar ruta por defecto
+            $base = defined('BASE_URL') ? BASE_URL : '/nps';
+            header('Location: ' . $base . '/login');
             exit;
         }
     }
