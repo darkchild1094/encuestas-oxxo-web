@@ -78,4 +78,12 @@ class CatalogoApiController
         $stmt->execute(['p' => (int) ($_GET['plaza_id'] ?? 0)]);
         echo json_encode($stmt->fetchAll());
     }
+
+    public function roles(): void
+    {
+        if (!$this->validarToken()) { $this->noAutorizado(); return; }
+        $pdo = Database::conexion();
+        $filas = $pdo->query('SELECT id, nombre FROM rol ORDER BY nombre')->fetchAll();
+        echo json_encode($filas);
+    }
 }
