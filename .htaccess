@@ -1,0 +1,8 @@
+RewriteEngine On
+
+# 1. Si la peticion empieza con /api, mandarla a public/api
+RewriteRule ^api/(.*)$ public/api/index.php [QSA,L]
+
+# 2. Si la peticion es para la raiz o cualquier otra cosa (web), mandarla a public
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteRule ^(.*)$ public/$1 [L]

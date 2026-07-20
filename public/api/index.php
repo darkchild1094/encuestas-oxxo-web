@@ -10,10 +10,12 @@ require_once __DIR__ . '/RespuestaApiController.php';
 require_once __DIR__ . '/UsuarioApiController.php';
 require_once __DIR__ . '/PreguntaApiController.php';
 
-// Detectar la ruta quitando todo lo que este antes de /api/
-$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$ruta = $uri;
-if (preg_match('#(/api/.*)$#', $uri, $m)) {
+// Deteccion robusta de la ruta para la API
+$uri = $_SERVER['REQUEST_URI'];
+$ruta = strtok($uri, '?'); // Quitar query string
+
+// Si la URL contiene /api/, nos quedamos con lo que sigue a partir de ahí
+if (preg_match('#(/api/.*)$#', $ruta, $m)) {
     $ruta = $m[1];
 }
 

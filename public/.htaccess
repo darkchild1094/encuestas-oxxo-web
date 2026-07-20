@@ -1,8 +1,7 @@
 RewriteEngine On
 
-# Si la peticion es para la API, dejamos que el .htaccess de la carpeta api/ lo maneje
-RewriteCond %{REQUEST_URI} ^.*/api/ [NC]
-RewriteRule ^ - [L]
+# Si la peticion es para la API, no hacer nada aqui y dejar que el .htaccess de api/ o el de la raiz mande
+RewriteRule ^api/ - [L]
 
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
