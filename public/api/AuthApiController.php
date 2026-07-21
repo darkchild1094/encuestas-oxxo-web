@@ -51,6 +51,13 @@ class AuthApiController
         // Limpiar tokens anteriores del mismo usuario
         $pdo->prepare('DELETE FROM token_acceso WHERE usuario_id = :uid')->execute(['uid' => $usuario['id']]);
 
+        // Aprovechamos que ya estamos escribiendo en esta tabla para
+        // limpiar tambien cualquier token vencido de OTROS usuarios.
+        // Ya con el indice de la migracion de rendimiento esto es
+        // barato, y evita que la tabla crezca sin limite con tokens
+        // de gente que dejo de usar la app.
+        $pdo->exec('DELETE FROM token_acceso WHERE fecha_expiracion < NOW()');
+
         $stmt = $pdo->prepare('
             INSERT INTO token_acceso (token, usuario_id, fecha_expiracion)
             VALUES (:token, :usuario_id, DATE_ADD(NOW(), INTERVAL 30 DAY))

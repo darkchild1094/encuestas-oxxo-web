@@ -1,46 +1,17 @@
 <?php
 
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../src/ApiAuth.php';
 
 // Lista de respuestas para el ATI, ya filtrada por sus tiendas
 // asignadas (tienda.asesor_ti_usuario_id) -- mismo criterio que
 // RespuestaController.php del panel web.
 class RespuestaApiController
 {
-    private function obtenerHeaderAuth(): string
-    {
-        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-        if ($header === '' && function_exists('getallheaders')) {
-            $headers = getallheaders();
-            $header = $headers['Authorization'] ?? $headers['authorization'] ?? '';
-        }
-        return $header;
-    }
-
-    private function usuarioDesdeToken(): ?array
-    {
-        $header = $this->obtenerHeaderAuth();
-        if (!preg_match('/Bearer\s+(\S+)/', $header, $m)) {
-            return null;
-        }
-
-        $pdo = Database::conexion();
-        $stmt = $pdo->prepare('
-            SELECT u.id, r.ve_resultados_tiendas
-            FROM token_acceso ta
-            JOIN usuario u ON u.id = ta.usuario_id
-            JOIN rol r ON r.id = u.rol_id
-            WHERE ta.token = :token AND ta.fecha_expiracion > NOW()
-            LIMIT 1
-        ');
-        $stmt->execute(['token' => $m[1]]);
-        $fila = $stmt->fetch();
-        return $fila ?: null;
-    }
 
     public function listar(): void
     {
-        $usuario = $this->usuarioDesdeToken();
+        $usuario = ApiAuth::usuarioDesdeToken();
         if (!$usuario) {
             http_response_code(401);
             echo json_encode(['error' => 'token invalido o vencido']);

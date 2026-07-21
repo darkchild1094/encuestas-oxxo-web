@@ -1,42 +1,14 @@
 <?php
 
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../src/ApiAuth.php';
 
 class PreguntaApiController
 {
-    private function obtenerHeaderAuth(): string
-    {
-        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-        if ($header === '' && function_exists('getallheaders')) {
-            $headers = getallheaders();
-            $header = $headers['Authorization'] ?? $headers['authorization'] ?? '';
-        }
-        return $header;
-    }
-
-    private function usuarioDesdeToken(): ?array
-    {
-        $header = $this->obtenerHeaderAuth();
-        if (!preg_match('/Bearer\s+(\S+)/', $header, $m)) {
-            return null;
-        }
-
-        $pdo = Database::conexion();
-        $stmt = $pdo->prepare('
-            SELECT u.id, r.gestiona_preguntas
-            FROM token_acceso ta
-            JOIN usuario u ON u.id = ta.usuario_id
-            JOIN rol r ON r.id = u.rol_id
-            WHERE ta.token = :token AND ta.fecha_expiracion > NOW()
-            LIMIT 1
-        ');
-        $stmt->execute(['token' => $m[1]]);
-        return $stmt->fetch() ?: null;
-    }
 
     public function crear(): void
     {
-        $u = $this->usuarioDesdeToken();
+        $u = ApiAuth::usuarioDesdeToken();
         if (!$u || !$u['gestiona_preguntas']) {
             http_response_code(401);
             echo json_encode(['error' => 'no autorizado']);
@@ -61,7 +33,7 @@ class PreguntaApiController
 
     public function editar(): void
     {
-        $u = $this->usuarioDesdeToken();
+        $u = ApiAuth::usuarioDesdeToken();
         if (!$u || !$u['gestiona_preguntas']) {
             http_response_code(401);
             echo json_encode(['error' => 'no autorizado']);
@@ -82,7 +54,7 @@ class PreguntaApiController
 
     public function eliminar(): void
     {
-        $u = $this->usuarioDesdeToken();
+        $u = ApiAuth::usuarioDesdeToken();
         $id = (int) ($_GET['id'] ?? 0);
 
         if (!$u || !$u['gestiona_preguntas']) {

@@ -1,42 +1,14 @@
 <?php
 
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../src/ApiAuth.php';
 
 class UsuarioApiController
 {
-    private function obtenerHeaderAuth(): string
-    {
-        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-        if ($header === '' && function_exists('getallheaders')) {
-            $headers = getallheaders();
-            $header = $headers['Authorization'] ?? $headers['authorization'] ?? '';
-        }
-        return $header;
-    }
-
-    private function usuarioDesdeToken(): ?array
-    {
-        $header = $this->obtenerHeaderAuth();
-        if (!preg_match('/Bearer\s+(\S+)/', $header, $m)) {
-            return null;
-        }
-
-        $pdo = Database::conexion();
-        $stmt = $pdo->prepare('
-            SELECT u.id, r.gestiona_usuarios, r.gestiona_preguntas
-            FROM token_acceso ta
-            JOIN usuario u ON u.id = ta.usuario_id
-            JOIN rol r ON r.id = u.rol_id
-            WHERE ta.token = :token AND ta.fecha_expiracion > NOW()
-            LIMIT 1
-        ');
-        $stmt->execute(['token' => $m[1]]);
-        return $stmt->fetch() ?: null;
-    }
 
     public function listar(): void
     {
-        $u = $this->usuarioDesdeToken();
+        $u = ApiAuth::usuarioDesdeToken();
         if (!$u || !$u['gestiona_usuarios']) {
             http_response_code(401);
             echo json_encode(['error' => 'no autorizado']);
@@ -70,7 +42,7 @@ class UsuarioApiController
 
     public function cambiarPassword(): void
     {
-        $u = $this->usuarioDesdeToken();
+        $u = ApiAuth::usuarioDesdeToken();
         if (!$u) {
             http_response_code(401);
             echo json_encode(['success' => false, 'error' => 'token invalido']);
@@ -95,7 +67,7 @@ class UsuarioApiController
 
     public function crear(): void
     {
-        $u = $this->usuarioDesdeToken();
+        $u = ApiAuth::usuarioDesdeToken();
         if (!$u || !$u['gestiona_usuarios']) {
             http_response_code(401);
             echo json_encode(['error' => 'no autorizado']);
@@ -129,7 +101,7 @@ class UsuarioApiController
 
     public function editar(): void
     {
-        $u = $this->usuarioDesdeToken();
+        $u = ApiAuth::usuarioDesdeToken();
         if (!$u || !$u['gestiona_usuarios']) {
             http_response_code(401);
             echo json_encode(['error' => 'no autorizado']);
@@ -166,7 +138,7 @@ class UsuarioApiController
 
     public function eliminar(): void
     {
-        $u = $this->usuarioDesdeToken();
+        $u = ApiAuth::usuarioDesdeToken();
         $id = (int) ($_GET['id'] ?? 0); // O sacarlo de la ruta si el index.php lo permite
 
         if (!$u || !$u['gestiona_usuarios']) {
@@ -182,7 +154,7 @@ class UsuarioApiController
 
     public function actualizarPerfil(): void
     {
-        $u = $this->usuarioDesdeToken();
+        $u = ApiAuth::usuarioDesdeToken();
         if (!$u) {
             http_response_code(401);
             echo json_encode(['success' => false, 'error' => 'token invalido']);

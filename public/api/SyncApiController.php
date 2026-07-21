@@ -1,52 +1,17 @@
 <?php
 
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../src/ApiAuth.php';
 
 class SyncApiController
 {
-    // $_SERVER['HTTP_AUTHORIZATION'] muchas veces llega vacio con
-    // Apache+PHP a menos que el servidor este configurado para
-    // pasarlo explicitamente (CGIPassAuth). getallheaders() es el
-    // fallback que si lo encuentra sin tocar config de Apache.
-    private function obtenerHeaderAuth(): string
-    {
-        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-        if ($header === '' && function_exists('getallheaders')) {
-            $headers = getallheaders();
-            $header = $headers['Authorization'] ?? $headers['authorization'] ?? '';
-        }
-        return $header;
-    }
-
-    // Valida el header "Authorization: Bearer <token>" contra
-    // token_acceso y regresa el usuario dueno del token, o null.
-    private function usuarioDesdeToken(): ?array
-    {
-        $header = $this->obtenerHeaderAuth();
-        if (!preg_match('/Bearer\s+(\S+)/', $header, $m)) {
-            return null;
-        }
-
-        $pdo = Database::conexion();
-        $stmt = $pdo->prepare('
-            SELECT u.id, r.es_encuestable
-            FROM token_acceso ta
-            JOIN usuario u ON u.id = ta.usuario_id
-            JOIN rol r ON r.id = u.rol_id
-            WHERE ta.token = :token AND ta.fecha_expiracion > NOW()
-            LIMIT 1
-        ');
-        $stmt->execute(['token' => $m[1]]);
-        $fila = $stmt->fetch();
-        return $fila ?: null;
-    }
 
     // GET /api/cuestionario?plaza_id=1
     // La app la llama al conectarse para refrescar el catalogo local
     // de preguntas (Room) antes de que el tecnico entre a una tienda.
     public function obtenerCuestionario(): void
     {
-        $usuario = $this->usuarioDesdeToken();
+        $usuario = ApiAuth::usuarioDesdeToken();
         if (!$usuario) {
             http_response_code(401);
             echo json_encode(['error' => 'token invalido o vencido']);
@@ -81,7 +46,7 @@ class SyncApiController
     // payload (ej. se corto la conexion a medio subir), no duplica.
     public function subirEncuestas(): void
     {
-        $usuario = $this->usuarioDesdeToken();
+        $usuario = ApiAuth::usuarioDesdeToken();
         if (!$usuario) {
             http_response_code(401);
             echo json_encode(['error' => 'token invalido o vencido']);

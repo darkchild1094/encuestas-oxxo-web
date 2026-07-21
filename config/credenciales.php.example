@@ -1,0 +1,8 @@
+<?php
+// Plantilla: copia este archivo a config/credenciales.php (SIN el
+// .example) y pon ahi los datos reales. credenciales.php esta en
+// .gitignore, nunca se sube al repo.
+$host = 'mysql-fieldserviceplus.alwaysdata.net';
+$db   = 'fieldserviceplus_nps';
+$user = 'fieldserviceplus_rahuag';
+$pass = 'PON_AQUI_LA_PASSWORD_NUEVA';
