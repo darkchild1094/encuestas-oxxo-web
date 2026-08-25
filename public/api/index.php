@@ -32,6 +32,7 @@ $rutas = [
     'GET /api/tiendas' => [CatalogoApiController::class, 'tiendas'],
     'GET /api/tiendas/ati-disponibles' => [CatalogoApiController::class, 'atisDisponibles'],
     'POST /api/tiendas/asignar-ati' => [CatalogoApiController::class, 'asignarAti'],
+    'POST /api/tiendas/edit' => [CatalogoApiController::class, 'editar'],
     'GET /api/roles' => [CatalogoApiController::class, 'roles'],
     'GET /api/respuestas' => [RespuestaApiController::class, 'listar'],
 
