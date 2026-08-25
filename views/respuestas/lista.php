@@ -1,9 +1,30 @@
 <?php require __DIR__ . '/../layout_header.php'; ?>
+<?php
+$tiendaId = $_GET['tienda_id'] ?? '';
+$encuestas = [];
+foreach ($filas as $fila) {
+  $id = $fila['encuesta_id'];
+  if (!isset($encuestas[$id])) {
+    $encuestas[$id] = [
+      'folio' => $fila['folio'] ?? '',
+      'fecha' => $fila['fecha_creacion_local'],
+      'tienda' => $fila['tienda'],
+      'usuario' => $fila['usuario'] ?? '(usuario eliminado)',
+      'comentario' => $fila['comentario'] ?? '',
+      'respuestas' => [],
+    ];
+  }
+  $encuestas[$id]['respuestas'][] = $fila;
+}
+?>
 <div class="page-heading">
   <div>
     <p class="eyebrow">Plaza <?= htmlspecialchars($_SESSION['plaza_id'] ?? '') ?></p>
     <h1>Respuestas de tiendas</h1>
   </div>
+  <?php if ($tiendaId): ?>
+    <a class="boton-secundario" href="<?= BASE_URL ?>/respuestas?<?= http_build_query(array_merge($_GET, ['tienda_id' => null])) ?>">&larr; Ver tiendas</a>
+  <?php endif; ?>
 </div>
 
 <?php if (!empty($atis)): ?>
@@ -17,52 +38,47 @@
 </nav>
 <?php endif; ?>
 
-<form method="GET" action="<?= BASE_URL ?>/respuestas" class="inline-form">
-  <label>ATI
-    <select name="ati_id" onchange="this.form.submit()">
-      <option value="">Todos los ATIs</option>
-      <?php foreach ($atis as $ati): ?>
-        <option value="<?= $ati['id'] ?>" <?= ($_GET['ati_id'] ?? '') == $ati['id'] ? 'selected' : '' ?>>
-          <?= htmlspecialchars($ati['nombre_completo']) ?>
-        </option>
-      <?php endforeach; ?>
-    </select>
-  </label>
-  <label>Tienda
-    <select name="tienda_id">
-      <option value="">Todas</option>
-      <?php foreach ($tiendas as $t): ?>
-        <option value="<?= $t['id'] ?>" <?= ($_GET['tienda_id'] ?? '') == $t['id'] ? 'selected' : '' ?>>
-          <?= htmlspecialchars($t['nombre']) ?>
-        </option>
-      <?php endforeach; ?>
-    </select>
-  </label>
+<form method="GET" action="<?= BASE_URL ?>/respuestas" class="inline-form filter-bar">
+  <?php if (!empty($_GET['ati_id'])): ?><input type="hidden" name="ati_id" value="<?= htmlspecialchars($_GET['ati_id']) ?>"><?php endif; ?>
   <label>Desde <input type="date" name="desde" value="<?= htmlspecialchars($_GET['desde'] ?? '') ?>"></label>
   <label>Hasta <input type="date" name="hasta" value="<?= htmlspecialchars($_GET['hasta'] ?? '') ?>"></label>
-  <button type="submit">Filtrar</button>
-  <a class="boton-secundario" href="<?= BASE_URL ?>/respuestas/exportar?<?= http_build_query($_GET) ?>">Exportar a Excel</a>
+  <button type="submit">Filtrar respuestas</button>
+  <a class="boton-secundario" href="<?= BASE_URL ?>/respuestas/exportar?<?= http_build_query($_GET) ?>">Exportar Excel</a>
 </form>
 
-<table>
-  <tr><th>Folio</th><th>Fecha</th><th>Tienda</th><th>Usuario</th><th>Pregunta</th><th>Calificacion</th><th>Comentario</th></tr>
-  <?php foreach ($filas as $f):
-    $cal = (int) $f['calificacion'];
-    $clase = $cal <= 6 ? 'cal-detractor' : ($cal <= 8 ? 'cal-pasivo' : 'cal-promotor');
-    $etiqueta = $cal <= 6 ? 'Detractor' : ($cal <= 8 ? 'Pasivo' : 'Promotor');
-  ?>
-  <tr>
-    <td><?= htmlspecialchars($f['folio'] ?? '') ?></td>
-    <td><?= htmlspecialchars($f['fecha_creacion_local']) ?></td>
-    <td><?= htmlspecialchars($f['tienda']) ?></td>
-    <td><?= htmlspecialchars($f['usuario'] ?? '(usuario eliminado)') ?></td>
-    <td><?= htmlspecialchars($f['pregunta']) ?></td>
-    <td><span class="calificacion-tag <?= $clase ?>"><?= $cal ?>/10 &middot; <?= $etiqueta ?></span></td>
-    <td><?= htmlspecialchars($f['comentario'] ?? '') ?></td>
-  </tr>
-  <?php endforeach; ?>
-  <?php if (!$filas): ?>
-  <tr><td colspan="7">Sin resultados con estos filtros.</td></tr>
+<?php if (!$tiendaId): ?>
+  <div class="section-intro"><h2>Tiendas con respuestas</h2><span><?= count($tiendas) ?> tienda<?= count($tiendas) === 1 ? '' : 's' ?></span></div>
+  <?php if ($tiendas): ?>
+    <div class="store-grid">
+      <?php foreach ($tiendas as $tienda): ?>
+        <a class="store-card" href="<?= BASE_URL ?>/respuestas?<?= http_build_query(array_merge($_GET, ['tienda_id' => $tienda['id']])) ?>">
+          <span class="store-icon" aria-hidden="true">&#8962;</span>
+          <span class="store-card-copy"><strong><?= htmlspecialchars($tienda['codigo']) ?></strong><span><?= htmlspecialchars($tienda['nombre']) ?></span></span>
+          <span class="store-count"><?= $tienda['total_encuestas'] ?> encuesta<?= $tienda['total_encuestas'] === 1 ? '' : 's' ?><b>&rarr;</b></span>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  <?php else: ?>
+    <div class="empty-state"><strong>Sin respuestas todavía</strong><span>Esta selección no tiene encuestas realizadas.</span></div>
   <?php endif; ?>
-</table>
+<?php else: ?>
+  <div class="section-intro"><h2><?= htmlspecialchars($encuestas ? reset($encuestas)['tienda'] : 'Detalle de tienda') ?></h2><span><?= count($encuestas) ?> encuesta<?= count($encuestas) === 1 ? '' : 's' ?></span></div>
+  <?php if ($encuestas): ?>
+    <div class="survey-list">
+      <?php foreach ($encuestas as $encuesta): ?>
+        <article class="survey-card">
+          <header class="survey-header"><div><strong>Folio <?= htmlspecialchars($encuesta['folio']) ?></strong><span><?= htmlspecialchars($encuesta['fecha']) ?> &middot; <?= htmlspecialchars($encuesta['usuario']) ?></span></div></header>
+          <div class="answer-list">
+            <?php foreach ($encuesta['respuestas'] as $respuesta): $cal = (int) $respuesta['calificacion']; $clase = $cal <= 6 ? 'cal-detractor' : ($cal <= 8 ? 'cal-pasivo' : 'cal-promotor'); ?>
+              <div class="answer-row"><span><?= htmlspecialchars($respuesta['pregunta']) ?></span><span class="calificacion-tag <?= $clase ?>"><?= $cal ?>/10</span></div>
+            <?php endforeach; ?>
+          </div>
+          <?php if ($encuesta['comentario'] !== ''): ?><p class="survey-comment">&ldquo;<?= htmlspecialchars($encuesta['comentario']) ?>&rdquo;</p><?php endif; ?>
+        </article>
+      <?php endforeach; ?>
+    </div>
+  <?php else: ?>
+    <div class="empty-state"><strong>Sin respuestas para esta tienda</strong><span>Prueba otro rango de fechas.</span></div>
+  <?php endif; ?>
+<?php endif; ?>
 <?php require __DIR__ . '/../layout_footer.php'; ?>

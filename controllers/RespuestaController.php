@@ -11,7 +11,7 @@ class RespuestaController
     {
         $sql = '
             SELECT
-                e.id AS encuesta_id, e.folio, e.fecha_creacion_local, e.comentario,
+                e.id AS encuesta_id, e.tienda_id, e.folio, e.fecha_creacion_local, e.comentario,
                 t.nombre AS tienda, p.nombre AS plaza, r.nombre AS region, n.nombre AS negocio,
                 ati.id AS ati_id, ati.nombre_completo AS ati_nombre,
                 u.correo AS usuario,
@@ -96,6 +96,26 @@ class RespuestaController
         $atis = $stmt->fetchAll();
 
         $filas = $this->query($this->filtrosDesdeGet());
+        $tiendasConRespuestas = [];
+        foreach ($filas as $fila) {
+            $id = (int) $fila['tienda_id'];
+            if (!isset($tiendasConRespuestas[$id])) {
+                $tiendasConRespuestas[$id] = [
+                    'id' => $id,
+                    'codigo' => $fila['tienda_codigo'] ?? '',
+                    'nombre' => $fila['tienda'],
+                    'encuestas' => [],
+                ];
+            }
+            $tiendasConRespuestas[$id]['encuestas'][$fila['encuesta_id']] = true;
+        }
+        foreach ($tiendasConRespuestas as &$tienda) {
+            $tienda['total_encuestas'] = count($tienda['encuestas']);
+            unset($tienda['encuestas']);
+        }
+        unset($tienda);
+        $tiendas = array_values($tiendasConRespuestas);
+        usort($tiendas, static fn(array $a, array $b): int => strcasecmp($a['nombre'], $b['nombre']));
 
         require __DIR__ . '/../views/respuestas/lista.php';
     }
