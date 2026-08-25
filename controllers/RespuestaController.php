@@ -11,7 +11,7 @@ class RespuestaController
     {
         $sql = '
             SELECT
-                e.id AS encuesta_id, e.fecha_creacion_local, e.comentario,
+                e.id AS encuesta_id, e.folio, e.fecha_creacion_local, e.comentario,
                 t.nombre AS tienda, p.nombre AS plaza, r.nombre AS region, n.nombre AS negocio,
                 u.correo AS usuario,
                 preg.texto AS pregunta, rd.calificacion
@@ -97,12 +97,13 @@ class RespuestaController
 
         echo "<table border='1'>";
         echo '<tr>
-                <th>Fecha</th><th>Negocio</th><th>Region</th><th>Plaza</th><th>Tienda</th>
+                <th>Folio</th><th>Fecha</th><th>Negocio</th><th>Region</th><th>Plaza</th><th>Tienda</th>
                 <th>Usuario</th><th>Pregunta</th><th>Calificacion (1-10)</th><th>Comentario</th>
               </tr>';
 
         foreach ($filas as $fila) {
             echo '<tr>'
+                . '<td>' . htmlspecialchars($fila['folio'] ?? '') . '</td>'
                 . '<td>' . htmlspecialchars($fila['fecha_creacion_local']) . '</td>'
                 . '<td>' . htmlspecialchars($fila['negocio']) . '</td>'
                 . '<td>' . htmlspecialchars($fila['region']) . '</td>'

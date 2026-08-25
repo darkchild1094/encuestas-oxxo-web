@@ -38,7 +38,7 @@ class SyncApiController
     }
 
     // POST /api/encuestas
-    // Body: { "encuestas": [ { id (uuid), tienda_id, cuestionario_id,
+    // Body: { "encuestas": [ { id (uuid), folio, tienda_id, cuestionario_id,
     //         comentario, fecha_creacion_local,
     //         respuestas: [ { id (uuid), pregunta_id, calificacion } ] } ] }
     // calificacion es 1-10 (escala NPS: 1-6 detractor, 7-8 pasivo, 9-10 promotor).
@@ -61,6 +61,15 @@ class SyncApiController
         $datos = json_decode(file_get_contents('php://input'), true) ?? [];
         $encuestas = $datos['encuestas'] ?? [];
 
+        foreach ($encuestas as $e) {
+            $folio = trim((string) ($e['folio'] ?? ''));
+            if ($folio === '' || strlen($folio) > 50) {
+                http_response_code(422);
+                echo json_encode(['error' => 'cada encuesta requiere un folio de 1 a 50 caracteres']);
+                return;
+            }
+        }
+
         $pdo = Database::conexion();
         $pdo->beginTransaction();
 
@@ -68,9 +77,9 @@ class SyncApiController
         try {
             $stmtEncuesta = $pdo->prepare('
                 INSERT IGNORE INTO encuesta
-                    (id, usuario_id, tienda_id, cuestionario_id, comentario, fecha_creacion_local, sincronizado, fecha_sincronizacion)
+                    (id, usuario_id, tienda_id, cuestionario_id, folio, comentario, fecha_creacion_local, sincronizado, fecha_sincronizacion)
                 VALUES
-                    (:id, :usuario_id, :tienda_id, :cuestionario_id, :comentario, :fecha_creacion_local, 1, NOW())
+                    (:id, :usuario_id, :tienda_id, :cuestionario_id, :folio, :comentario, :fecha_creacion_local, 1, NOW())
             ');
             $stmtRespuesta = $pdo->prepare('
                 INSERT IGNORE INTO respuesta_detalle (id, encuesta_id, pregunta_id, calificacion)
@@ -83,6 +92,7 @@ class SyncApiController
                     'usuario_id' => $usuario['id'],
                     'tienda_id' => $e['tienda_id'],
                     'cuestionario_id' => $e['cuestionario_id'],
+                    'folio' => trim($e['folio']),
                     'comentario' => $e['comentario'] ?? null,
                     'fecha_creacion_local' => $e['fecha_creacion_local'],
                 ]);

@@ -26,7 +26,7 @@ class RespuestaApiController
         $pdo = Database::conexion();
         $stmt = $pdo->prepare('
             SELECT
-                e.id AS encuesta_id, e.fecha_creacion_local, e.comentario,
+                e.id AS encuesta_id, e.folio, e.fecha_creacion_local, e.comentario,
                 t.nombre AS tienda, t.codigo AS tienda_codigo,
                 preg.texto AS pregunta, rd.calificacion
             FROM encuesta e

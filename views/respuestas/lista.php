@@ -19,13 +19,14 @@
 </form>
 
 <table>
-  <tr><th>Fecha</th><th>Tienda</th><th>Usuario</th><th>Pregunta</th><th>Calificacion</th><th>Comentario</th></tr>
+  <tr><th>Folio</th><th>Fecha</th><th>Tienda</th><th>Usuario</th><th>Pregunta</th><th>Calificacion</th><th>Comentario</th></tr>
   <?php foreach ($filas as $f):
     $cal = (int) $f['calificacion'];
     $clase = $cal <= 6 ? 'cal-detractor' : ($cal <= 8 ? 'cal-pasivo' : 'cal-promotor');
     $etiqueta = $cal <= 6 ? 'Detractor' : ($cal <= 8 ? 'Pasivo' : 'Promotor');
   ?>
   <tr>
+    <td><?= htmlspecialchars($f['folio'] ?? '') ?></td>
     <td><?= htmlspecialchars($f['fecha_creacion_local']) ?></td>
     <td><?= htmlspecialchars($f['tienda']) ?></td>
     <td><?= htmlspecialchars($f['usuario'] ?? '(usuario eliminado)') ?></td>
@@ -35,7 +36,7 @@
   </tr>
   <?php endforeach; ?>
   <?php if (!$filas): ?>
-  <tr><td colspan="6">Sin resultados con estos filtros.</td></tr>
+  <tr><td colspan="7">Sin resultados con estos filtros.</td></tr>
   <?php endif; ?>
 </table>
 <?php require __DIR__ . '/../layout_footer.php'; ?>
