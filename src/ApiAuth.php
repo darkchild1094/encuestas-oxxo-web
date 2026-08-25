@@ -44,7 +44,7 @@ class ApiAuth
 
         $pdo = Database::conexion();
         $stmt = $pdo->prepare('
-            SELECT u.id, r.gestiona_preguntas, r.gestiona_usuarios,
+            SELECT u.id, u.plaza_id, r.nombre AS rol_nombre, r.gestiona_preguntas, r.gestiona_usuarios,
                    r.es_encuestable, r.ve_resultados_tiendas
             FROM token_acceso ta
             JOIN usuario u ON u.id = ta.usuario_id
@@ -59,6 +59,7 @@ class ApiAuth
         }
 
         $fila['id'] = (int) $fila['id'];
+        $fila['plaza_id'] = $fila['plaza_id'] !== null ? (int) $fila['plaza_id'] : null;
         $fila['gestiona_preguntas'] = (bool) $fila['gestiona_preguntas'];
         $fila['gestiona_usuarios'] = (bool) $fila['gestiona_usuarios'];
         $fila['es_encuestable'] = (bool) $fila['es_encuestable'];

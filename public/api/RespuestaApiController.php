@@ -35,14 +35,17 @@ class RespuestaApiController
                 preg.texto AS pregunta, rd.calificacion
             FROM encuesta e
             JOIN tienda t ON t.id = e.tienda_id
-            JOIN usuario usuario_actual ON usuario_actual.id = :asesor_actual
             LEFT JOIN usuario ati ON ati.id = t.asesor_ti_usuario_id
             JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
             JOIN pregunta preg ON preg.id = rd.pregunta_id
-            WHERE t.plaza_id = usuario_actual.plaza_id
+            WHERE t.plaza_id = :plaza_id
             ORDER BY e.fecha_creacion_local DESC, preg.es_fija ASC, preg.orden
         ');
-        $stmt->execute(['asesor_actual' => $usuario['id']]);
+        if ($usuario['plaza_id'] === null) {
+            echo json_encode([]);
+            return;
+        }
+        $stmt->execute(['plaza_id' => $usuario['plaza_id']]);
         echo json_encode($stmt->fetchAll());
     }
 }
