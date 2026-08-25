@@ -16,8 +16,7 @@ $fotoPerfil = $_SESSION['foto_perfil'] ?? null;
   <a class="brand" href="<?= BASE_URL ?>/">
     <img class="logo-oxxo" src="<?= BASE_URL ?>/assets/logo.png" alt="OXXO">
     <span class="pulso-lockup">
-      <img class="logo-pulso" src="<?= BASE_URL ?>/assets/logo_pulso_ti.png" alt="">
-      <span class="pulso-wordmark">PULSO <b>TI</b></span>
+      <img class="logo-pulso" src="<?= BASE_URL ?>/assets/logo_pulso_ti.png" alt="Pulso TI">
     </span>
   </a>
   <div class="nav-links">
