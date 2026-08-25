@@ -55,7 +55,8 @@ class CatalogoApiController
         $stmt = $pdo->prepare('
                  SELECT t.id, t.nombre, t.codigo, t.plaza_id, t.direccion, t.latitud, t.longitud,
                      t.asesor_ti_usuario_id,
-                       u.id AS ati_usuario_id, u.nombre_completo AS ati_nombre, u.foto_perfil AS ati_foto
+                       u.id AS ati_usuario_id, u.nombre_completo AS ati_nombre, u.foto_perfil AS ati_foto,
+                       u.genero AS ati_genero
             FROM tienda t
             LEFT JOIN usuario u ON u.id = t.asesor_ti_usuario_id
             WHERE t.plaza_id = :p
@@ -87,7 +88,7 @@ class CatalogoApiController
 
         $pdo = Database::conexion();
         $stmt = $pdo->prepare("
-            SELECT u.id, u.nombre_completo, u.foto_perfil
+            SELECT u.id, u.nombre_completo, u.foto_perfil, u.genero
             FROM usuario u
             JOIN rol r ON r.id = u.rol_id
             WHERE r.nombre = 'ATI' AND u.plaza_id = :p
