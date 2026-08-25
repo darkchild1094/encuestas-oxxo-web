@@ -11,6 +11,21 @@ class EstadisticasApiController
         echo json_encode(['error' => 'token invalido o vencido']);
     }
 
+    private function requiereAti(): bool
+    {
+        $usuario = ApiAuth::usuarioDesdeToken();
+        if (!$usuario) {
+            $this->noAutorizado();
+            return false;
+        }
+        if ($usuario['rol_nombre'] !== 'ATI') {
+            http_response_code(403);
+            echo json_encode(['error' => 'solo el rol ATI puede consultar estadisticas']);
+            return false;
+        }
+        return true;
+    }
+
     private function promediosDesdeSql($sql, $params): array
     {
         $pdo = Database::conexion();
@@ -30,12 +45,30 @@ class EstadisticasApiController
         return $datos;
     }
 
+    private function agregarRangoFecha(string &$sql, array &$params): void
+    {
+        foreach (['desde', 'hasta'] as $campo) {
+            $valor = $_GET[$campo] ?? '';
+            $fecha = DateTime::createFromFormat('!Y-m-d', $valor);
+            if (!$fecha || $fecha->format('Y-m-d') !== $valor) {
+                continue;
+            }
+
+            if ($campo === 'desde') {
+                $sql .= ' AND e.fecha_creacion_local >= :desde';
+            } else {
+                $sql .= ' AND e.fecha_creacion_local < DATE_ADD(:hasta, INTERVAL 1 DAY)';
+            }
+            $params[$campo] = $valor;
+        }
+    }
+
     // GET /api/estadisticas/pfs?plaza_id=X
     // Promedio de cada pregunta en la plaza, filtrado por encuestas
     // respondidas sobre tiendas de esa plaza.
     public function estadisticasPfs(): void
     {
-        if (!ApiAuth::usuarioDesdeToken()) { $this->noAutorizado(); return; }
+        if (!$this->requiereAti()) { return; }
         $plazaId = (int) ($_GET['plaza_id'] ?? 0);
 
         $sql = "
@@ -53,14 +86,16 @@ class EstadisticasApiController
             ORDER BY p.es_fija ASC, p.orden ASC
         ";
 
-        echo json_encode($this->promediosDesdeSql($sql, ['p' => $plazaId]));
+        $params = ['p' => $plazaId];
+        $this->agregarRangoFecha($sql, $params);
+        echo json_encode($this->promediosDesdeSql($sql, $params));
     }
 
     // GET /api/estadisticas/region/atis?plaza_id=X
     // Promedio total de cada ATI en toda la region a la que pertenece la plaza.
     public function estadisticasRegionAtis(): void
     {
-        if (!ApiAuth::usuarioDesdeToken()) { $this->noAutorizado(); return; }
+        if (!$this->requiereAti()) { return; }
         $plazaId = (int) ($_GET['plaza_id'] ?? 0);
 
         $sql = "
@@ -80,14 +115,16 @@ class EstadisticasApiController
             ORDER BY promedio DESC
         ";
 
-        echo json_encode($this->promediosDesdeSql($sql, ['p' => $plazaId]));
+        $params = ['p' => $plazaId];
+        $this->agregarRangoFecha($sql, $params);
+        echo json_encode($this->promediosDesdeSql($sql, $params));
     }
 
     // GET /api/estadisticas/region/plazas?plaza_id=X
     // Promedio total de cada Plaza en toda la region.
     public function estadisticasRegionPlazas(): void
     {
-        if (!ApiAuth::usuarioDesdeToken()) { $this->noAutorizado(); return; }
+        if (!$this->requiereAti()) { return; }
         $plazaId = (int) ($_GET['plaza_id'] ?? 0);
 
         $sql = "
@@ -105,6 +142,8 @@ class EstadisticasApiController
             ORDER BY promedio DESC
         ";
 
-        echo json_encode($this->promediosDesdeSql($sql, ['p' => $plazaId]));
+        $params = ['p' => $plazaId];
+        $this->agregarRangoFecha($sql, $params);
+        echo json_encode($this->promediosDesdeSql($sql, $params));
     }
 }

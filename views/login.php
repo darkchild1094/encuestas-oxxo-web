@@ -5,17 +5,20 @@
   <title>Login - Encuestas OXXO</title>
   <link rel="stylesheet" href="<?= BASE_URL ?>/css/style.css">
 </head>
-<body>
+<body class="login-page">
 <main class="login-box">
-  <h1>Encuestas OXXO</h1>
+  <div class="login-brand"><span class="brand-mark">OXXO</span><span>Encuestas<br><small>Pulso TI</small></span></div>
+  <p class="eyebrow">Acceso operativo</p>
+  <h1>Bienvenido de vuelta</h1>
+  <p class="login-copy">Administra la operación y consulta las respuestas de tus tiendas.</p>
   <?php if (!empty($_SESSION['error_login'])): ?>
     <p class="error"><?= htmlspecialchars($_SESSION['error_login']) ?></p>
     <?php unset($_SESSION['error_login']); ?>
   <?php endif; ?>
   <form method="POST" action="<?= BASE_URL ?>/login">
-    <label>Correo <input type="email" name="correo" required autofocus></label>
-    <label>Password <input type="password" name="password" required></label>
-    <button type="submit">Entrar</button>
+    <label>Correo <input type="email" name="correo" placeholder="nombre@oxxo.com" required autofocus></label>
+    <label>Contraseña <input type="password" name="password" placeholder="Escribe tu contraseña" required></label>
+    <button type="submit">Entrar al panel <span aria-hidden="true">&rarr;</span></button>
   </form>
 </main>
 </body>

@@ -1,7 +1,33 @@
 <?php require __DIR__ . '/../layout_header.php'; ?>
-<h1>Respuestas de tus tiendas asignadas</h1>
+<div class="page-heading">
+  <div>
+    <p class="eyebrow">Plaza <?= htmlspecialchars($_SESSION['plaza_id'] ?? '') ?></p>
+    <h1>Respuestas de tiendas</h1>
+  </div>
+</div>
+
+<?php if (!empty($atis)): ?>
+<nav class="ati-tabs" aria-label="ATIs de la plaza">
+  <?php foreach ($atis as $ati): ?>
+    <a class="ati-tab <?= (($_GET['ati_id'] ?? '') == $ati['id']) ? 'active' : '' ?>"
+       href="<?= BASE_URL ?>/respuestas?<?= http_build_query(array_merge($_GET, ['ati_id' => $ati['id'], 'tienda_id' => null])) ?>">
+      <?= htmlspecialchars($ati['nombre_completo']) ?>
+    </a>
+  <?php endforeach; ?>
+</nav>
+<?php endif; ?>
 
 <form method="GET" action="<?= BASE_URL ?>/respuestas" class="inline-form">
+  <label>ATI
+    <select name="ati_id" onchange="this.form.submit()">
+      <option value="">Todos los ATIs</option>
+      <?php foreach ($atis as $ati): ?>
+        <option value="<?= $ati['id'] ?>" <?= ($_GET['ati_id'] ?? '') == $ati['id'] ? 'selected' : '' ?>>
+          <?= htmlspecialchars($ati['nombre_completo']) ?>
+        </option>
+      <?php endforeach; ?>
+    </select>
+  </label>
   <label>Tienda
     <select name="tienda_id">
       <option value="">Todas</option>

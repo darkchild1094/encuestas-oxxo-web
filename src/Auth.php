@@ -19,6 +19,7 @@ class Auth
         $_SESSION['rol'] = $usuario['rol_nombre'];
         $_SESSION['nombre_completo'] = $usuario['nombre_completo'] ?? '';
         $_SESSION['foto_perfil'] = $usuario['foto_perfil'] ?? null;
+        $_SESSION['plaza_id'] = $usuario['plaza_id'] ?? null;
         $_SESSION['gestiona_preguntas'] = (bool) $usuario['gestiona_preguntas'];
         $_SESSION['gestiona_usuarios'] = (bool) $usuario['gestiona_usuarios'];
         $_SESSION['ve_resultados_tiendas'] = (bool) $usuario['ve_resultados_tiendas'];

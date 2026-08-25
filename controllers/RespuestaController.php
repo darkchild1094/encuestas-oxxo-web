@@ -13,6 +13,7 @@ class RespuestaController
             SELECT
                 e.id AS encuesta_id, e.folio, e.fecha_creacion_local, e.comentario,
                 t.nombre AS tienda, p.nombre AS plaza, r.nombre AS region, n.nombre AS negocio,
+                ati.id AS ati_id, ati.nombre_completo AS ati_nombre,
                 u.correo AS usuario,
                 preg.texto AS pregunta, rd.calificacion
             FROM encuesta e
@@ -21,14 +22,20 @@ class RespuestaController
             JOIN region r ON r.id = p.region_id
             JOIN negocio n ON n.id = r.negocio_id
             LEFT JOIN usuario u ON u.id = e.usuario_id
+            LEFT JOIN usuario ati ON ati.id = t.asesor_ti_usuario_id
             JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
             JOIN pregunta preg ON preg.id = rd.pregunta_id
-            WHERE t.asesor_ti_usuario_id = :asesor_actual
+            WHERE t.plaza_id = :plaza_id
         ';
         // El ATI SOLO ve resultados de las tiendas donde el mismo es
         // el asesor TI asignado (tienda.asesor_ti_usuario_id) -- ya
         // no ve todas las tiendas del sistema.
-        $params = ['asesor_actual' => $_SESSION['usuario_id']];
+        $params = ['plaza_id' => $_SESSION['plaza_id']];
+
+        if (!empty($filtros['ati_id'])) {
+            $sql .= ' AND t.asesor_ti_usuario_id = :ati_id';
+            $params['ati_id'] = $filtros['ati_id'];
+        }
 
         if (!empty($filtros['plaza_id'])) {
             $sql .= ' AND p.id = :plaza_id';
@@ -60,6 +67,7 @@ class RespuestaController
         return [
             'plaza_id' => $_GET['plaza_id'] ?? null,
             'tienda_id' => $_GET['tienda_id'] ?? null,
+            'ati_id' => $_GET['ati_id'] ?? null,
             'desde' => $_GET['desde'] ?? null,
             'hasta' => $_GET['hasta'] ?? null,
         ];
@@ -67,16 +75,25 @@ class RespuestaController
 
     public function index(): void
     {
+        if (($_SESSION['rol'] ?? '') !== 'ATI') {
+            http_response_code(403);
+            echo 'Solo el rol ATI puede consultar las respuestas de tiendas.';
+            exit;
+        }
         Auth::requierePermiso('ve_resultados_tiendas');
         $pdo = Database::conexion();
 
         $stmt = $pdo->prepare('
             SELECT id, nombre FROM tienda
-            WHERE asesor_ti_usuario_id = :asesor_actual
+            WHERE plaza_id = :plaza_id
             ORDER BY nombre
         ');
-        $stmt->execute(['asesor_actual' => $_SESSION['usuario_id']]);
+        $stmt->execute(['plaza_id' => $_SESSION['plaza_id']]);
         $tiendas = $stmt->fetchAll();
+
+        $stmt = $pdo->prepare("\n            SELECT u.id, u.nombre_completo\n            FROM usuario u\n            JOIN rol r ON r.id = u.rol_id\n            WHERE r.nombre = 'ATI' AND u.plaza_id = :plaza_id\n            ORDER BY u.nombre_completo\n        ");
+        $stmt->execute(['plaza_id' => $_SESSION['plaza_id']]);
+        $atis = $stmt->fetchAll();
 
         $filas = $this->query($this->filtrosDesdeGet());
 
@@ -85,6 +102,11 @@ class RespuestaController
 
     public function exportarExcel(): void
     {
+        if (($_SESSION['rol'] ?? '') !== 'ATI') {
+            http_response_code(403);
+            echo 'Solo el rol ATI puede exportar las respuestas de tiendas.';
+            exit;
+        }
         Auth::requierePermiso('ve_resultados_tiendas');
         $filas = $this->query($this->filtrosDesdeGet());
 

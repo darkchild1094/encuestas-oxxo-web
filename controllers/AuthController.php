@@ -19,7 +19,7 @@ class AuthController
         $pdo = Database::conexion();
         $stmt = $pdo->prepare('
             SELECT u.id, u.password_hash, u.debe_cambiar_password,
-                   u.nombre_completo, u.foto_perfil,
+                   u.nombre_completo, u.foto_perfil, u.plaza_id,
                    r.nombre AS rol_nombre, r.gestiona_preguntas,
                    r.gestiona_usuarios, r.ve_resultados_tiendas
             FROM usuario u

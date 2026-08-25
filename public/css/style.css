@@ -1,31 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+:root { --red:#d70b16; --red-dark:#a4080f; --yellow:#faaf04; --ink:#241213; --muted:#6b6260; --paper:#fffdf9; --surface:#fff; --line:#eadfda; --green:#16735d; --shadow:0 18px 45px rgba(70,28,24,.09); }
 * { box-sizing: border-box; }
-body { font-family: Arial, sans-serif; margin: 0; background: #F7F7F5; color: #2C2C2A; }
-.topnav { background: #26215C; color: white; padding: 12px 20px; display: flex; align-items: center; gap: 16px; }
-.topnav a { color: white; text-decoration: none; }
-.topnav a:hover { text-decoration: underline; }
-.rol-tag { background: #CECBF6; color: #26215C; padding: 2px 10px; border-radius: 10px; font-size: 12px; }
-.usuario-actual { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; }
-.avatar-nav { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
-.avatar-placeholder { display: inline-flex; align-items: center; justify-content: center; background: #5DCAA5; color: #04342C; font-weight: bold; }
-.calificacion-tag { padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; white-space: nowrap; }
-.cal-detractor { background: #FAECE7; color: #99321D; }
-.cal-pasivo { background: #FAEEDA; color: #7A4B02; }
-.cal-promotor { background: #E1F5EE; color: #04342C; }
-main { padding: 24px; max-width: 1100px; margin: 0 auto; }
-h1 { margin-top: 0; }
-table { border-collapse: collapse; width: 100%; background: white; margin-bottom: 24px; }
-th, td { border: 1px solid #E0DFD9; padding: 8px 10px; text-align: left; font-size: 14px; }
-th { background: #EFEFEA; }
-form { margin-bottom: 12px; }
-.inline-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-label { display: inline-flex; flex-direction: column; font-size: 13px; gap: 4px; }
-input, select { padding: 6px 8px; border: 1px solid #B4B2A9; border-radius: 4px; }
-button { padding: 7px 14px; border: none; border-radius: 4px; background: #26215C; color: white; cursor: pointer; }
-button.danger { background: #993C1D; }
-button:hover { opacity: 0.9; }
-.boton-secundario { padding: 7px 14px; border-radius: 4px; background: #5DCAA5; color: #04342C; text-decoration: none; }
-.acciones form { display: inline-block; margin-right: 6px; }
-.login-box { max-width: 360px; margin: 80px auto; background: white; padding: 30px; border-radius: 8px; }
-.login-box form { display: flex; flex-direction: column; gap: 12px; }
-.error { color: #993C1D; }
-.ok { color: #0F6E56; }
+body { margin:0; color:var(--ink); background:var(--paper); font-family:'DM Sans',sans-serif; background-image:radial-gradient(circle at 90% 0%,rgba(250,175,4,.14),transparent 28rem); }
+.topnav { min-height:72px; padding:12px clamp(18px,4vw,56px); display:flex; align-items:center; gap:28px; color:#fff; background:var(--red); box-shadow:0 5px 18px rgba(164,8,15,.18); }
+.brand,.login-brand { display:inline-flex; align-items:center; gap:11px; color:inherit; text-decoration:none; }
+.brand strong,.login-brand span:last-child { display:block; font:700 17px 'Space Grotesk',sans-serif; line-height:1; }
+.brand small,.login-brand small { display:block; margin-top:4px; font-size:11px; opacity:.75; letter-spacing:.08em; text-transform:uppercase; }
+.brand-mark { display:inline-flex; align-items:center; justify-content:center; min-width:58px; height:31px; padding:0 7px; border:3px solid #fff; border-radius:18px; color:#fff; font:700 14px 'Space Grotesk',sans-serif; letter-spacing:-.04em; }
+.nav-links { display:flex; align-items:center; gap:8px; }
+.nav-links a,.logout-link { padding:9px 12px; border-radius:7px; color:#fff; text-decoration:none; font-size:13px; font-weight:600; }
+.nav-links a:hover,.logout-link:hover { background:rgba(255,255,255,.16); }
+.usuario-actual { margin-left:auto; display:flex; align-items:center; gap:9px; font-size:13px; white-space:nowrap; }
+.avatar-nav { width:34px; height:34px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,.7); }
+.avatar-placeholder { display:inline-flex; align-items:center; justify-content:center; background:var(--yellow); color:var(--ink); font-weight:700; }
+.rol-tag { padding:5px 10px; border-radius:999px; background:#ffe18b; color:#573d00; font-size:11px; font-weight:700; letter-spacing:.04em; }
+.page-shell { width:min(1180px,calc(100% - 36px)); margin:0 auto; padding:42px 0 64px; }
+.page-heading { display:flex; justify-content:space-between; align-items:end; margin-bottom:24px; }
+.page-heading .eyebrow { margin:0 0 6px; }
+.ati-tabs { display:flex; gap:8px; overflow-x:auto; margin:0 0 22px; padding-bottom:2px; border-bottom:1px solid var(--line); }
+.ati-tab { flex:0 0 auto; padding:11px 15px; border-bottom:3px solid transparent; color:var(--muted); text-decoration:none; font-size:13px; font-weight:700; }
+.ati-tab:hover { color:var(--red); }
+.ati-tab.active { border-color:var(--red); color:var(--red); }
+h1,h2 { font-family:'Space Grotesk',sans-serif; letter-spacing:-.03em; } h1 { margin:0 0 8px; font-size:clamp(28px,4vw,42px); } h2 { margin:34px 0 14px; font-size:21px; }
+form { margin-bottom:18px; } .inline-form { display:flex; align-items:end; flex-wrap:wrap; gap:13px; }
+label { display:inline-flex; flex-direction:column; gap:6px; color:var(--muted); font-size:12px; font-weight:700; }
+input,select { min-height:40px; padding:9px 11px; border:1px solid #cfc2bc; border-radius:7px; background:var(--surface); color:var(--ink); font:inherit; }
+input:focus,select:focus { outline:3px solid rgba(250,175,4,.3); border-color:var(--yellow); }
+button,.boton-secundario { min-height:40px; padding:9px 15px; border:0; border-radius:7px; background:var(--red); color:#fff; cursor:pointer; font:700 13px 'DM Sans',sans-serif; text-decoration:none; }
+button:hover,.boton-secundario:hover { background:var(--red-dark); } .boton-secundario { display:inline-flex; align-items:center; background:var(--green); } button.danger { background:#9b321f; }
+table { width:100%; margin:20px 0 28px; border-collapse:separate; border-spacing:0; overflow:hidden; background:var(--surface); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); }
+th,td { padding:13px 14px; border-bottom:1px solid var(--line); text-align:left; font-size:13px; vertical-align:middle; } th { background:#fff3df; color:#694b2b; font:700 11px 'Space Grotesk',sans-serif; letter-spacing:.07em; text-transform:uppercase; } tr:last-child td { border-bottom:0; } tr:hover td { background:#fffaf3; }
+.calificacion-tag { display:inline-block; padding:5px 9px; border-radius:999px; font-size:11px; font-weight:700; white-space:nowrap; } .cal-detractor { background:#fde5e2; color:#9b321f; } .cal-pasivo { background:#fff0c9; color:#795000; } .cal-promotor { background:#dff4e9; color:#075b48; }
+.ok,.error { padding:11px 14px; border-radius:7px; font-size:13px; } .ok { background:#e4f6ed; color:var(--green); } .error { background:#fde5e2; color:#9b321f; }
+.acciones form { display:inline-block; margin:0 5px 5px 0; } .site-footer { padding:20px; color:var(--muted); text-align:center; font-size:12px; }
+.login-page { min-height:100vh; display:grid; place-items:center; padding:24px; background:var(--red); background-image:radial-gradient(circle at 8% 90%,rgba(250,175,4,.38),transparent 26rem); }
+.login-box { width:min(420px,100%); padding:36px; border-radius:14px; background:var(--surface); box-shadow:0 25px 70px rgba(55,4,8,.25); } .login-brand { margin-bottom:42px; color:var(--red); } .login-brand .brand-mark { border-color:var(--red); color:var(--red); }
+.eyebrow { margin:0 0 8px; color:var(--red); font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; } .login-box h1 { font-size:30px; } .login-copy { margin:0 0 26px; color:var(--muted); line-height:1.55; } .login-box form { display:flex; flex-direction:column; gap:15px; } .login-box button { width:100%; margin-top:6px; min-height:46px; font-size:14px; }
+@media (max-width:760px) { .topnav { flex-wrap:wrap; gap:10px; } .nav-links { order:3; width:100%; overflow-x:auto; } .usuario-actual { margin-left:auto; } .page-shell { padding-top:28px; } table { display:block; overflow-x:auto; white-space:nowrap; } .inline-form>* { flex:1 1 150px; } }
