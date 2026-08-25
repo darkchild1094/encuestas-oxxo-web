@@ -9,6 +9,7 @@ $fotoPerfil = $_SESSION['foto_perfil'] ?? null;
   <meta charset="UTF-8">
   <title>Encuestas OXXO - Panel</title>
   <link rel="icon" type="image/svg+xml" href="<?= BASE_URL ?>/assets/favicon-pulso-ti.svg">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="<?= BASE_URL ?>/css/style.css">
 </head>
 <body>
