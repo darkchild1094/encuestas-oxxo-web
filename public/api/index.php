@@ -9,6 +9,7 @@ require_once __DIR__ . '/CatalogoApiController.php';
 require_once __DIR__ . '/RespuestaApiController.php';
 require_once __DIR__ . '/UsuarioApiController.php';
 require_once __DIR__ . '/PreguntaApiController.php';
+require_once __DIR__ . '/EstadisticasApiController.php';
 
 // Deteccion robusta de la ruta para la API
 $uri = $_SERVER['REQUEST_URI'];
@@ -50,6 +51,11 @@ $rutas = [
     'POST /api/preguntas' => [PreguntaApiController::class, 'crear'],
     'POST /api/preguntas/edit' => [PreguntaApiController::class, 'editar'],
     'DELETE /api/preguntas' => [PreguntaApiController::class, 'eliminar'],
+
+    // Estadísticas
+    'GET /api/estadisticas/pfs' => [EstadisticasApiController::class, 'estadisticasPfs'],
+    'GET /api/estadisticas/region/atis' => [EstadisticasApiController::class, 'estadisticasRegionAtis'],
+    'GET /api/estadisticas/region/plazas' => [EstadisticasApiController::class, 'estadisticasRegionPlazas'],
 ];
 
 $clave = "$metodo $ruta";

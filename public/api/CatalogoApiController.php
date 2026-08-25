@@ -128,8 +128,8 @@ class CatalogoApiController
         }
 
         $plazaId = array_key_exists('plaza_id', $datos) ? (int) $datos['plaza_id'] : (int) $tienda['plaza_id'];
-        $codigo = array_key_exists('codigo', $datos) ? trim((string) $datos['codigo']) : $tienda['codigo'];
-        $nombre = array_key_exists('nombre', $datos) ? trim((string) $datos['nombre']) : $tienda['nombre'];
+        $codigo = $tienda['codigo'];
+        $nombre = $tienda['nombre'];
         $atiUsuarioId = array_key_exists('asesor_ti_usuario_id', $datos)
             ? ($datos['asesor_ti_usuario_id'] === null ? null : (int) $datos['asesor_ti_usuario_id'])
             : (array_key_exists('ati_usuario_id', $datos) ? ($datos['ati_usuario_id'] === null ? null : (int) $datos['ati_usuario_id']) : $tienda['asesor_ti_usuario_id']);
