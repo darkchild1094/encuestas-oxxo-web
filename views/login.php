@@ -7,7 +7,10 @@
 </head>
 <body class="login-page">
 <main class="login-box">
-  <div class="login-brand"><span class="brand-mark">OXXO</span><span>Encuestas<br><small>Pulso TI</small></span></div>
+  <div class="login-brand">
+    <img class="logo-oxxo" src="<?= BASE_URL ?>/assets/Oxxo_Logo.svg" alt="OXXO">
+    <img class="logo-pulso" src="<?= BASE_URL ?>/assets/logo_pulso_ti.png" alt="Pulso TI">
+  </div>
   <p class="eyebrow">Acceso operativo</p>
   <h1>Bienvenido de vuelta</h1>
   <p class="login-copy">Administra la operación y consulta las respuestas de tus tiendas.</p>
