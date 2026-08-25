@@ -9,26 +9,26 @@ $fotoPerfil = $_SESSION['foto_perfil'] ?? null;
   <meta charset="UTF-8">
   <title>Encuestas OXXO - Panel</title>
   <link rel="icon" type="image/svg+xml" href="<?= BASE_URL ?>/assets/favicon-pulso-ti.svg">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <?php require __DIR__ . '/bootstrap.php'; ?>
   <link rel="stylesheet" href="<?= BASE_URL ?>/css/style.css">
 </head>
 <body>
-<nav class="topnav">
+<nav class="topnav navbar navbar-expand-lg">
   <a class="brand" href="<?= BASE_URL ?>/">
     <img class="logo-oxxo" src="<?= BASE_URL ?>/assets/logo.png" alt="OXXO">
     <span class="pulso-lockup">
       <img class="logo-pulso" src="<?= BASE_URL ?>/assets/logo_pulso_ti.png" alt="Pulso TI">
     </span>
   </a>
-  <div class="nav-links">
+  <div class="nav-links navbar-nav">
   <?php if (($_SESSION['rol'] ?? '') === 'ATI' && !empty($_SESSION['ve_resultados_tiendas'])): ?>
-    <a href="<?= BASE_URL ?>/respuestas">Respuestas de tiendas</a>
+    <a class="nav-link" href="<?= BASE_URL ?>/respuestas">Respuestas de tiendas</a>
   <?php endif; ?>
   <?php if (!empty($_SESSION['gestiona_preguntas'])): ?>
-    <a href="<?= BASE_URL ?>/preguntas">Preguntas</a>
+    <a class="nav-link" href="<?= BASE_URL ?>/preguntas">Preguntas</a>
   <?php endif; ?>
   <?php if (!empty($_SESSION['gestiona_usuarios'])): ?>
-    <a href="<?= BASE_URL ?>/usuarios">Usuarios</a>
+    <a class="nav-link" href="<?= BASE_URL ?>/usuarios">Usuarios</a>
   <?php endif; ?>
   </div>
   <span class="usuario-actual">
