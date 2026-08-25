@@ -18,7 +18,7 @@ class UsuarioApiController
         $pdo = Database::conexion();
         $usuarios = $pdo->query('
             SELECT u.id, u.correo, u.nombre_completo, u.foto_perfil, u.plaza_id,
-                   u.debe_cambiar_password, u.fecha_registro, r.nombre AS rol,
+                   u.debe_cambiar_password, u.fecha_registro, u.genero, r.nombre AS rol,
                    p.nombre AS plaza_nombre
             FROM usuario u
             JOIN rol r ON r.id = u.rol_id
@@ -79,19 +79,21 @@ class UsuarioApiController
         $rolId = (int) ($_POST['rol_id'] ?? 0);
         $plazaId = (int) ($_POST['plaza_id'] ?? 0) ?: null;
         $password = $_POST['password'] ?? '';
+        $genero = $this->generoValido($_POST['genero'] ?? null);
 
         $rutaFoto = $this->guardarFotoSiViene();
 
         $pdo = Database::conexion();
         $stmt = $pdo->prepare('
-            INSERT INTO usuario (rol_id, plaza_id, correo, nombre_completo, password_hash, foto_perfil, debe_cambiar_password)
-            VALUES (:rol_id, :plaza_id, :correo, :nombre, :hash, :foto, 1)
+            INSERT INTO usuario (rol_id, plaza_id, correo, nombre_completo, genero, password_hash, foto_perfil, debe_cambiar_password)
+            VALUES (:rol_id, :plaza_id, :correo, :nombre, :genero, :hash, :foto, 1)
         ');
         $stmt->execute([
             'rol_id' => $rolId,
             'plaza_id' => $plazaId,
             'correo' => $correo,
             'nombre' => $nombre,
+            'genero' => $genero,
             'hash' => password_hash($password, PASSWORD_DEFAULT),
             'foto' => $rutaFoto,
         ]);
@@ -113,12 +115,18 @@ class UsuarioApiController
         $rolId = (int) ($_POST['rol_id'] ?? 0);
         $plazaId = (int) ($_POST['plaza_id'] ?? 0) ?: null;
         $password = $_POST['password'] ?? null;
+        $genero = $this->generoValido($_POST['genero'] ?? null);
 
         $rutaFoto = $this->guardarFotoSiViene();
 
         $pdo = Database::conexion();
         $sql = "UPDATE usuario SET nombre_completo = :nom, rol_id = :rid, plaza_id = :pid";
         $params = ['nom' => $nombre, 'rid' => $rolId, 'pid' => $plazaId, 'id' => $id];
+
+        if ($genero !== null) {
+            $sql .= ", genero = :genero";
+            $params['genero'] = $genero;
+        }
 
         if ($rutaFoto) {
             $sql .= ", foto_perfil = :foto";
@@ -174,6 +182,12 @@ class UsuarioApiController
         }
 
         echo json_encode(['success' => true]);
+    }
+
+    private function generoValido(?string $valor): ?string
+    {
+        $valor = strtoupper(trim($valor ?? ''));
+        return in_array($valor, ['H', 'M'], true) ? $valor : null;
     }
 
     private function guardarFotoSiViene(): ?string

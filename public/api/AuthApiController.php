@@ -13,7 +13,7 @@ class AuthApiController
         $pdo = Database::conexion();
         $stmt = $pdo->prepare('
             SELECT u.id, u.correo, u.nombre_completo, u.password_hash,
-                   u.debe_cambiar_password, u.foto_perfil,
+                   u.debe_cambiar_password, u.foto_perfil, u.genero,
                    u.plaza_id, pl.nombre AS plaza_nombre,
                    r.nombre AS rol, r.gestiona_preguntas, r.gestiona_usuarios,
                    r.es_encuestable, r.ve_resultados_tiendas

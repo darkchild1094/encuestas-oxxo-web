@@ -11,6 +11,12 @@
  <div class="row g-3 align-items-end">
   <div class="col-12 col-md-6"><label class="form-label" for="nombre_completo">Nombre completo</label><input class="form-control" id="nombre_completo" type="text" name="nombre_completo" required></div>
   <div class="col-12 col-md-6"><label class="form-label" for="correo">Correo</label><input class="form-control" id="correo" type="email" name="correo" required></div>
+  <div class="col-12 col-md-4"><label class="form-label" for="genero">Género</label>
+    <select class="form-select" id="genero" name="genero">
+      <option value="">Sin especificar</option>
+      <option value="H">Hombre</option>
+      <option value="M">Mujer</option>
+    </select></div>
   <div class="col-12 col-md-4"><label class="form-label" for="rol_id">Rol</label>
     <select class="form-select" id="rol_id" name="rol_id" required>
       <?php foreach ($roles as $r): ?>
@@ -45,6 +51,11 @@
       <form method="POST" action="<?= BASE_URL ?>/usuarios/editar-datos" enctype="multipart/form-data" class="inline-form">
         <input type="hidden" name="id" value="<?= $u['id'] ?>">
         <input class="form-control form-control-sm mb-2" type="text" name="nombre_completo" value="<?= htmlspecialchars($u['nombre_completo'] ?? '') ?>">
+        <select class="form-select form-select-sm mb-2" name="genero">
+          <option value="" <?= empty($u['genero']) ? 'selected' : '' ?>>Sin especificar</option>
+          <option value="H" <?= $u['genero'] === 'H' ? 'selected' : '' ?>>Hombre</option>
+          <option value="M" <?= $u['genero'] === 'M' ? 'selected' : '' ?>>Mujer</option>
+        </select>
         <input class="form-control form-control-sm mb-2" type="file" name="foto_perfil" accept="image/png,image/jpeg,image/webp">
         <button class="btn btn-sm btn-primary" type="submit">Guardar</button>
       </form>

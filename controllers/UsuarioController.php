@@ -13,7 +13,7 @@ class UsuarioController
 
         $usuarios = $pdo->query('
             SELECT u.id, u.correo, u.nombre_completo, u.foto_perfil, u.plaza_id,
-                   u.debe_cambiar_password, u.fecha_registro, r.nombre AS rol,
+                   u.debe_cambiar_password, u.fecha_registro, u.genero, r.nombre AS rol,
                    p.nombre AS plaza
             FROM usuario u
             JOIN rol r ON r.id = u.rol_id
@@ -40,6 +40,7 @@ class UsuarioController
         $nombreCompleto = trim($_POST['nombre_completo'] ?? '');
         $rolId = (int) ($_POST['rol_id'] ?? 0);
         $plazaId = (int) ($_POST['plaza_id'] ?? 0) ?: null;
+        $genero = $this->generoValido($_POST['genero'] ?? null);
 
         $rutaFoto = $this->guardarFotoSiViene();
 
@@ -49,14 +50,15 @@ class UsuarioController
 
         $pdo = Database::conexion();
         $stmt = $pdo->prepare('
-            INSERT INTO usuario (rol_id, plaza_id, correo, nombre_completo, password_hash, foto_perfil, debe_cambiar_password)
-            VALUES (:rol_id, :plaza_id, :correo, :nombre, :hash, :foto, 1)
+            INSERT INTO usuario (rol_id, plaza_id, correo, nombre_completo, genero, password_hash, foto_perfil, debe_cambiar_password)
+            VALUES (:rol_id, :plaza_id, :correo, :nombre, :genero, :hash, :foto, 1)
         ');
         $stmt->execute([
             'rol_id' => $rolId,
             'plaza_id' => $plazaId,
             'correo' => $correo,
             'nombre' => $nombreCompleto,
+            'genero' => $genero,
             'hash' => password_hash($temporal, PASSWORD_DEFAULT),
             'foto' => $rutaFoto,
         ]);
@@ -74,20 +76,35 @@ class UsuarioController
         Auth::requierePermiso('gestiona_usuarios');
         $id = (int) ($_POST['id'] ?? 0);
         $nombreCompleto = trim($_POST['nombre_completo'] ?? '');
+        $genero = $this->generoValido($_POST['genero'] ?? null);
 
         $rutaFoto = $this->guardarFotoSiViene();
 
         $pdo = Database::conexion();
-        if ($rutaFoto) {
-            $stmt = $pdo->prepare('UPDATE usuario SET nombre_completo = :nombre, foto_perfil = :foto WHERE id = :id');
-            $stmt->execute(['nombre' => $nombreCompleto, 'foto' => $rutaFoto, 'id' => $id]);
-        } else {
-            $stmt = $pdo->prepare('UPDATE usuario SET nombre_completo = :nombre WHERE id = :id');
-            $stmt->execute(['nombre' => $nombreCompleto, 'id' => $id]);
+        $sql = 'UPDATE usuario SET nombre_completo = :nombre';
+        $params = ['nombre' => $nombreCompleto, 'id' => $id];
+
+        if ($genero !== null) {
+            $sql .= ', genero = :genero';
+            $params['genero'] = $genero;
         }
+        if ($rutaFoto) {
+            $sql .= ', foto_perfil = :foto';
+            $params['foto'] = $rutaFoto;
+        }
+        $sql .= ' WHERE id = :id';
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
 
         header('Location: ' . BASE_URL . '/usuarios');
         exit;
+    }
+
+    private function generoValido(?string $valor): ?string
+    {
+        $valor = strtoupper(trim($valor ?? ''));
+        return in_array($valor, ['H', 'M'], true) ? $valor : null;
     }
 
     // Valida y guarda la foto si vino en el request. Regresa la ruta
