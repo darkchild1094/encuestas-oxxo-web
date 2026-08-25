@@ -52,7 +52,7 @@ foreach ($filas as $fila) {
     <div class="store-grid">
       <?php foreach ($tiendas as $tienda): ?>
         <a class="store-card card border-0 shadow-sm" href="<?= BASE_URL ?>/respuestas?<?= http_build_query(array_merge($_GET, ['tienda_id' => $tienda['id']])) ?>">
-          <span class="store-icon" aria-hidden="true">&#8962;</span>
+          <img class="store-icon" src="<?= BASE_URL ?>/assets/tienda-oxxo.svg" alt="Tienda OXXO">
           <span class="store-card-copy"><strong><?= htmlspecialchars($tienda['codigo']) ?></strong><span><?= htmlspecialchars($tienda['nombre']) ?></span></span>
           <span class="store-count"><?= $tienda['total_encuestas'] ?> encuesta<?= $tienda['total_encuestas'] === 1 ? '' : 's' ?><b>&rarr;</b></span>
         </a>
