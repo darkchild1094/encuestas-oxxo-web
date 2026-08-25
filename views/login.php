@@ -9,9 +9,8 @@
 <body class="login-page">
 <main class="login-box">
   <div class="login-brand">
-    <img class="logo-oxxo" src="<?= BASE_URL ?>/assets/logo.png" alt="OXXO">
     <span class="pulso-lockup">
-      <img class="logo-pulso" src="<?= BASE_URL ?>/assets/logo_pulso_ti.png" alt="">
+      <img class="logo-pulso" src="<?= BASE_URL ?>/assets/logo_pulso_ti.png" alt="Pulso TI">
     </span>
   </div>
   <p class="eyebrow">Acceso operativo</p>
