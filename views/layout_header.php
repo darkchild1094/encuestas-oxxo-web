@@ -13,8 +13,11 @@ $fotoPerfil = $_SESSION['foto_perfil'] ?? null;
 <body>
 <nav class="topnav">
   <a class="brand" href="<?= BASE_URL ?>/">
-    <img class="logo-oxxo" src="<?= BASE_URL ?>/assets/Oxxo_Logo.svg" alt="OXXO">
-    <img class="logo-pulso" src="<?= BASE_URL ?>/assets/logo_pulso_ti.png" alt="Pulso TI">
+    <img class="logo-oxxo" src="<?= BASE_URL ?>/assets/logo.png" alt="OXXO">
+    <span class="pulso-lockup">
+      <img class="logo-pulso" src="<?= BASE_URL ?>/assets/logo_pulso_ti.png" alt="">
+      <span class="pulso-wordmark">PULSO <b>TI</b></span>
+    </span>
   </a>
   <div class="nav-links">
   <?php if (($_SESSION['rol'] ?? '') === 'ATI' && !empty($_SESSION['ve_resultados_tiendas'])): ?>
