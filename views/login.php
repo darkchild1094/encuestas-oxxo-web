@@ -11,7 +11,6 @@
     <img class="logo-oxxo" src="<?= BASE_URL ?>/assets/logo.png" alt="OXXO">
     <span class="pulso-lockup">
       <img class="logo-pulso" src="<?= BASE_URL ?>/assets/logo_pulso_ti.png" alt="">
-      <span class="pulso-wordmark">PULSO <b>TI</b></span>
     </span>
   </div>
   <p class="eyebrow">Acceso operativo</p>
