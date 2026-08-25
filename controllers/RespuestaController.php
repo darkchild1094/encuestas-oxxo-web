@@ -25,12 +25,14 @@ class RespuestaController
             LEFT JOIN usuario ati ON ati.id = t.asesor_ti_usuario_id
             JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
             JOIN pregunta preg ON preg.id = rd.pregunta_id
-            WHERE t.plaza_id = :plaza_id
+            WHERE 1 = 1
         ';
-        // El ATI SOLO ve resultados de las tiendas donde el mismo es
-        // el asesor TI asignado (tienda.asesor_ti_usuario_id) -- ya
-        // no ve todas las tiendas del sistema.
-        $params = ['plaza_id' => $_SESSION['plaza_id']];
+        $esAtiGlobal = (int) ($_SESSION['usuario_id'] ?? 0) === 128;
+        $params = [];
+        if (!$esAtiGlobal) {
+            $sql .= ' AND t.plaza_id = :sesion_plaza_id';
+            $params['sesion_plaza_id'] = $_SESSION['plaza_id'];
+        }
 
         if (!empty($filtros['ati_id'])) {
             $sql .= ' AND t.asesor_ti_usuario_id = :ati_id';
@@ -38,8 +40,8 @@ class RespuestaController
         }
 
         if (!empty($filtros['plaza_id'])) {
-            $sql .= ' AND p.id = :plaza_id';
-            $params['plaza_id'] = $filtros['plaza_id'];
+            $sql .= ' AND p.id = :filtro_plaza_id';
+            $params['filtro_plaza_id'] = $filtros['plaza_id'];
         }
         if (!empty($filtros['tienda_id'])) {
             $sql .= ' AND t.id = :tienda_id';
@@ -83,16 +85,10 @@ class RespuestaController
         Auth::requierePermiso('ve_resultados_tiendas');
         $pdo = Database::conexion();
 
-        $stmt = $pdo->prepare('
-            SELECT id, nombre FROM tienda
-            WHERE plaza_id = :plaza_id
-            ORDER BY nombre
-        ');
-        $stmt->execute(['plaza_id' => $_SESSION['plaza_id']]);
-        $tiendas = $stmt->fetchAll();
-
-        $stmt = $pdo->prepare("\n            SELECT u.id, u.nombre_completo\n            FROM usuario u\n            JOIN rol r ON r.id = u.rol_id\n            WHERE r.nombre = 'ATI' AND u.plaza_id = :plaza_id\n            ORDER BY u.nombre_completo\n        ");
-        $stmt->execute(['plaza_id' => $_SESSION['plaza_id']]);
+        $esAtiGlobal = (int) $_SESSION['usuario_id'] === 128;
+        $filtroPlaza = $esAtiGlobal ? '' : ' AND u.plaza_id = :plaza_id';
+        $stmt = $pdo->prepare("\n            SELECT u.id, u.nombre_completo\n            FROM usuario u\n            JOIN rol r ON r.id = u.rol_id\n            WHERE r.nombre = 'ATI'{$filtroPlaza}\n            ORDER BY u.nombre_completo\n        ");
+        $stmt->execute($esAtiGlobal ? [] : ['plaza_id' => $_SESSION['plaza_id']]);
         $atis = $stmt->fetchAll();
 
         $filas = $this->query($this->filtrosDesdeGet());
@@ -128,37 +124,36 @@ class RespuestaController
             exit;
         }
         Auth::requierePermiso('ve_resultados_tiendas');
-        $filas = $this->query($this->filtrosDesdeGet());
-
-        // Exportacion basica: tabla HTML con content-type de Excel.
-        // Abre bien en Excel y LibreOffice Calc sin depender de
-        // ninguna libreria. Si despues se necesita un .xlsx real con
-        // formato/formulas, se agrega PhpSpreadsheet via composer.
-        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
-        header('Content-Disposition: attachment; filename="respuestas_' . date('Y-m-d_His') . '.xls"');
-
-        echo "<table border='1'>";
-        echo '<tr>
-                <th>Folio</th><th>Fecha</th><th>Negocio</th><th>Region</th><th>Plaza</th><th>Tienda</th>
-                <th>Usuario</th><th>Pregunta</th><th>Calificacion (1-10)</th><th>Comentario</th>
-              </tr>';
-
+        $filtrosExportacion = $this->filtrosDesdeGet();
+        unset($filtrosExportacion['ati_id'], $filtrosExportacion['tienda_id']);
+        $filas = $this->query($filtrosExportacion);
+        $hojas = [];
         foreach ($filas as $fila) {
-            echo '<tr>'
-                . '<td>' . htmlspecialchars($fila['folio'] ?? '') . '</td>'
-                . '<td>' . htmlspecialchars($fila['fecha_creacion_local']) . '</td>'
-                . '<td>' . htmlspecialchars($fila['negocio']) . '</td>'
-                . '<td>' . htmlspecialchars($fila['region']) . '</td>'
-                . '<td>' . htmlspecialchars($fila['plaza']) . '</td>'
-                . '<td>' . htmlspecialchars($fila['tienda']) . '</td>'
-                . '<td>' . htmlspecialchars($fila['usuario'] ?? '(usuario eliminado)') . '</td>'
-                . '<td>' . htmlspecialchars($fila['pregunta']) . '</td>'
-                . '<td>' . (int) $fila['calificacion'] . '</td>'
-                . '<td>' . htmlspecialchars($fila['comentario'] ?? '') . '</td>'
-                . '</tr>';
+            $clave = (string) ($fila['ati_id'] ?? 'sin_ati');
+            $hojas[$clave]['nombre'] = $fila['ati_nombre'] ?? 'Sin ATI asignado';
+            $hojas[$clave]['filas'][] = $fila;
         }
-
-        echo '</table>';
+        $escaparXml = static fn(string $valor): string => htmlspecialchars($valor, ENT_XML1 | ENT_COMPAT, 'UTF-8');
+        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+        header('Content-Disposition: attachment; filename="respuestas_por_ati_' . date('Y-m-d_His') . '.xml"');
+        echo '<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>';
+        echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
+        foreach ($hojas as $hoja) {
+            $nombreHoja = preg_replace('/[\\\/:?*\[\]]/', '-', $hoja['nombre']) ?: 'Sin ATI';
+            echo '<Worksheet ss:Name="' . $escaparXml(substr($nombreHoja, 0, 31)) . '"><Table>';
+            echo '<Row><Cell><Data ss:Type="String">Folio</Data></Cell><Cell><Data ss:Type="String">Fecha</Data></Cell><Cell><Data ss:Type="String">Negocio</Data></Cell><Cell><Data ss:Type="String">Region</Data></Cell><Cell><Data ss:Type="String">Plaza</Data></Cell><Cell><Data ss:Type="String">Tienda</Data></Cell><Cell><Data ss:Type="String">Usuario</Data></Cell><Cell><Data ss:Type="String">Pregunta</Data></Cell><Cell><Data ss:Type="String">Calificacion</Data></Cell><Cell><Data ss:Type="String">Comentario</Data></Cell></Row>';
+            foreach ($hoja['filas'] as $fila) {
+                $valores = [$fila['folio'] ?? '', $fila['fecha_creacion_local'], $fila['negocio'], $fila['region'], $fila['plaza'], $fila['tienda'], $fila['usuario'] ?? '(usuario eliminado)', $fila['pregunta'], (string) $fila['calificacion'], $fila['comentario'] ?? ''];
+                echo '<Row>';
+                foreach ($valores as $indice => $valor) {
+                    $tipo = $indice === 8 ? 'Number' : 'String';
+                    echo '<Cell><Data ss:Type="' . $tipo . '">' . $escaparXml((string) $valor) . '</Data></Cell>';
+                }
+                echo '</Row>';
+            }
+            echo '</Table></Worksheet>';
+        }
+        echo '</Workbook>';
         exit;
     }
 }

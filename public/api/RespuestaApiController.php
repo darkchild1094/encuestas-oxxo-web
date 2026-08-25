@@ -38,14 +38,18 @@ class RespuestaApiController
             LEFT JOIN usuario ati ON ati.id = t.asesor_ti_usuario_id
             JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
             JOIN pregunta preg ON preg.id = rd.pregunta_id
-            WHERE t.plaza_id = :plaza_id
+            WHERE (:es_ati_global = 1 OR t.plaza_id = :plaza_id)
             ORDER BY e.fecha_creacion_local DESC, preg.es_fija ASC, preg.orden
         ');
-        if ($usuario['plaza_id'] === null) {
+        $esAtiGlobal = (int) $usuario['id'] === 128;
+        if (!$esAtiGlobal && $usuario['plaza_id'] === null) {
             echo json_encode([]);
             return;
         }
-        $stmt->execute(['plaza_id' => $usuario['plaza_id']]);
+        $stmt->execute([
+            'es_ati_global' => $esAtiGlobal ? 1 : 0,
+            'plaza_id' => $usuario['plaza_id'],
+        ]);
         echo json_encode($stmt->fetchAll());
     }
 }
