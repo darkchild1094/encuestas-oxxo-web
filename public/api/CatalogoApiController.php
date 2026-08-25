@@ -49,9 +49,87 @@ class CatalogoApiController
     {
         if (!ApiAuth::usuarioDesdeToken()) { $this->noAutorizado(); return; }
         $pdo = Database::conexion();
-        $stmt = $pdo->prepare('SELECT id, nombre, codigo FROM tienda WHERE plaza_id = :p ORDER BY nombre');
+        // LEFT JOIN al ATI asignado (asesor_ti_usuario_id puede ser NULL,
+        // sobre todo en plazas distintas a Valles): el app usa
+        // ati_usuario_id === null como señal para mostrar el selector.
+        $stmt = $pdo->prepare('
+            SELECT t.id, t.nombre, t.codigo, t.plaza_id,
+                   u.id AS ati_usuario_id, u.nombre_completo AS ati_nombre, u.foto_perfil AS ati_foto
+            FROM tienda t
+            LEFT JOIN usuario u ON u.id = t.asesor_ti_usuario_id
+            WHERE t.plaza_id = :p
+            ORDER BY t.nombre
+        ');
         $stmt->execute(['p' => (int) ($_GET['plaza_id'] ?? 0)]);
-        echo json_encode($stmt->fetchAll());
+        $filas = $stmt->fetchAll();
+        foreach ($filas as &$f) {
+            $f['id'] = (int) $f['id'];
+            $f['plaza_id'] = (int) $f['plaza_id'];
+            $f['ati_usuario_id'] = $f['ati_usuario_id'] !== null ? (int) $f['ati_usuario_id'] : null;
+        }
+        echo json_encode($filas);
+    }
+
+    // GET /api/tiendas/ati-disponibles?plaza_id=X
+    // ATIs de una plaza para el selector cuando la tienda no tiene
+    // asesor_ti_usuario_id asignado. Abierto a cualquier usuario
+    // encuestable (el tecnico en tienda), no solo a quien gestiona
+    // usuarios -- por eso NO reutiliza UsuarioApiController::listar().
+    public function atisDisponibles(): void
+    {
+        $usuario = ApiAuth::usuarioDesdeToken();
+        if (!$usuario) { $this->noAutorizado(); return; }
+
+        $pdo = Database::conexion();
+        $stmt = $pdo->prepare("
+            SELECT u.id, u.nombre_completo, u.foto_perfil
+            FROM usuario u
+            JOIN rol r ON r.id = u.rol_id
+            WHERE r.nombre = 'ATI' AND u.plaza_id = :p
+            ORDER BY u.nombre_completo
+        ");
+        $stmt->execute(['p' => (int) ($_GET['plaza_id'] ?? 0)]);
+        $filas = $stmt->fetchAll();
+        foreach ($filas as &$f) { $f['id'] = (int) $f['id']; }
+        echo json_encode($filas);
+    }
+
+    // POST /api/tiendas/asignar-ati  Body: { tienda_id, usuario_id }
+    // Guarda la eleccion de forma PERMANENTE en la tienda: la proxima
+    // vez que alguien encueste ahi, ya no se le pregunta.
+    public function asignarAti(): void
+    {
+        $usuario = ApiAuth::usuarioDesdeToken();
+        if (!$usuario) { $this->noAutorizado(); return; }
+
+        $datos = json_decode(file_get_contents('php://input'), true) ?? [];
+        $tiendaId = (int) ($datos['tienda_id'] ?? 0);
+        $atiUsuarioId = (int) ($datos['usuario_id'] ?? 0);
+
+        if (!$tiendaId || !$atiUsuarioId) {
+            http_response_code(400);
+            echo json_encode(['error' => 'tienda_id y usuario_id son requeridos']);
+            return;
+        }
+
+        // Validar que el usuario_id realmente sea ATI antes de guardarlo,
+        // para no dejar la tienda apuntando a cualquier rol por error del cliente.
+        $pdo = Database::conexion();
+        $stmt = $pdo->prepare("
+            SELECT u.id FROM usuario u JOIN rol r ON r.id = u.rol_id
+            WHERE u.id = :u AND r.nombre = 'ATI'
+        ");
+        $stmt->execute(['u' => $atiUsuarioId]);
+        if (!$stmt->fetch()) {
+            http_response_code(422);
+            echo json_encode(['error' => 'el usuario indicado no tiene rol ATI']);
+            return;
+        }
+
+        $stmt = $pdo->prepare('UPDATE tienda SET asesor_ti_usuario_id = :u WHERE id = :t');
+        $stmt->execute(['u' => $atiUsuarioId, 't' => $tiendaId]);
+
+        echo json_encode(['success' => true]);
     }
 
     public function roles(): void
