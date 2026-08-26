@@ -10,6 +10,7 @@ require_once __DIR__ . '/RespuestaApiController.php';
 require_once __DIR__ . '/UsuarioApiController.php';
 require_once __DIR__ . '/PreguntaApiController.php';
 require_once __DIR__ . '/EstadisticasApiController.php';
+require_once __DIR__ . '/EncuestaSyncApiController.php';
 
 // Deteccion robusta de la ruta para la API
 $uri = $_SERVER['REQUEST_URI'];
@@ -56,6 +57,15 @@ $rutas = [
     'GET /api/estadisticas/pfs' => [EstadisticasApiController::class, 'estadisticasPfs'],
     'GET /api/estadisticas/region/atis' => [EstadisticasApiController::class, 'estadisticasRegionAtis'],
     'GET /api/estadisticas/region/plazas' => [EstadisticasApiController::class, 'estadisticasRegionPlazas'],
+
+    // Handshaking y sincronización de encuestas
+    'POST /api/encuestas/sync/init-handshake' => [EncuestaSyncApiController::class, 'iniciarHandshake'],
+    'POST /api/encuestas/sync/confirm-handshake' => [EncuestaSyncApiController::class, 'confirmarHandshake'],
+    'POST /api/encuestas/sync/registrar-error' => [EncuestaSyncApiController::class, 'registrarError'],
+    'GET /api/encuestas/sync/status' => [EncuestaSyncApiController::class, 'obtenerStatus'],
+
+    // Módulo PFS
+    'GET /api/encuestas/pfs/pendientes' => [EncuestaSyncApiController::class, 'listarPendientesPFS'],
 ];
 
 $clave = "$metodo $ruta";
