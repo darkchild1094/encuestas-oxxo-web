@@ -124,36 +124,27 @@ class RespuestaController
             exit;
         }
         Auth::requierePermiso('ve_resultados_tiendas');
+
+        require_once __DIR__ . '/../src/ReporteRespuestas.php';
+
         $filtrosExportacion = $this->filtrosDesdeGet();
         unset($filtrosExportacion['ati_id'], $filtrosExportacion['tienda_id']);
-        $filas = $this->query($filtrosExportacion);
-        $hojas = [];
-        foreach ($filas as $fila) {
-            $clave = (string) ($fila['ati_id'] ?? 'sin_ati');
-            $hojas[$clave]['nombre'] = $fila['ati_nombre'] ?? 'Sin ATI asignado';
-            $hojas[$clave]['filas'][] = $fila;
-        }
-        $escaparXml = static fn(string $valor): string => htmlspecialchars($valor, ENT_XML1 | ENT_COMPAT, 'UTF-8');
-        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
-        header('Content-Disposition: attachment; filename="respuestas_por_ati_' . date('Y-m-d_His') . '.xml"');
-        echo '<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>';
-        echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
-        foreach ($hojas as $hoja) {
-            $nombreHoja = preg_replace('/[\\\/:?*\[\]]/', '-', $hoja['nombre']) ?: 'Sin ATI';
-            echo '<Worksheet ss:Name="' . $escaparXml(substr($nombreHoja, 0, 31)) . '"><Table>';
-            echo '<Row><Cell><Data ss:Type="String">Folio</Data></Cell><Cell><Data ss:Type="String">Fecha</Data></Cell><Cell><Data ss:Type="String">Negocio</Data></Cell><Cell><Data ss:Type="String">Region</Data></Cell><Cell><Data ss:Type="String">Plaza</Data></Cell><Cell><Data ss:Type="String">Tienda</Data></Cell><Cell><Data ss:Type="String">Usuario</Data></Cell><Cell><Data ss:Type="String">Pregunta</Data></Cell><Cell><Data ss:Type="String">Calificacion</Data></Cell><Cell><Data ss:Type="String">Comentario</Data></Cell></Row>';
-            foreach ($hoja['filas'] as $fila) {
-                $valores = [$fila['folio'] ?? '', $fila['fecha_creacion_local'], $fila['negocio'], $fila['region'], $fila['plaza'], $fila['tienda'], $fila['usuario'] ?? '(usuario eliminado)', $fila['pregunta'], (string) $fila['calificacion'], $fila['comentario'] ?? ''];
-                echo '<Row>';
-                foreach ($valores as $indice => $valor) {
-                    $tipo = $indice === 8 ? 'Number' : 'String';
-                    echo '<Cell><Data ss:Type="' . $tipo . '">' . $escaparXml((string) $valor) . '</Data></Cell>';
-                }
-                echo '</Row>';
-            }
-            echo '</Table></Worksheet>';
-        }
-        echo '</Workbook>';
+
+        $filasDetalle = $this->query($filtrosExportacion);
+
+        $esAtiGlobal = (int) ($_SESSION['usuario_id'] ?? 0) === 128;
+        $reporte = new ReporteRespuestas(
+            Database::conexion(),
+            $esAtiGlobal,
+            $_SESSION['plaza_id'] ?? null,
+            $filtrosExportacion
+        );
+        $xlsx = $reporte->generar($filasDetalle);
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="reporte_pulso_ti_' . date('Y-m-d_His') . '.xlsx"');
+        header('Content-Length: ' . strlen($xlsx));
+        echo $xlsx;
         exit;
     }
 }
