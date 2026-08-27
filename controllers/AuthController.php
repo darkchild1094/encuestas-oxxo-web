@@ -21,7 +21,8 @@ class AuthController
             SELECT u.id, u.password_hash, u.debe_cambiar_password,
                    u.nombre_completo, u.foto_perfil, u.plaza_id,
                    r.nombre AS rol_nombre, r.gestiona_preguntas,
-                   r.gestiona_usuarios, r.ve_resultados_tiendas
+                   (r.gestiona_usuarios OR u.id = 128) AS gestiona_usuarios,
+                   r.ve_resultados_tiendas
             FROM usuario u
             JOIN rol r ON r.id = u.rol_id
             WHERE u.correo = :correo

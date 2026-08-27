@@ -44,7 +44,8 @@ class ApiAuth
 
         $pdo = Database::conexion();
         $stmt = $pdo->prepare('
-            SELECT u.id, u.plaza_id, r.nombre AS rol_nombre, r.gestiona_preguntas, r.gestiona_usuarios,
+            SELECT u.id, u.plaza_id, r.nombre AS rol_nombre, r.gestiona_preguntas,
+                   (r.gestiona_usuarios OR u.id = 128) AS gestiona_usuarios,
                    r.es_encuestable, r.ve_resultados_tiendas
             FROM token_acceso ta
             JOIN usuario u ON u.id = ta.usuario_id

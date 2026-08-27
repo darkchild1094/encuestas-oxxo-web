@@ -35,3 +35,10 @@ node_modules/
 npm-debug.log
 yarn-error.log
 
+
+# Posible keystore/certificado comiteado por error - nunca subir
+/nps
+*.keystore
+*.jks
+*.p12
+*.pfx

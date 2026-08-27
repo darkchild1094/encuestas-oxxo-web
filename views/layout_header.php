@@ -30,6 +30,9 @@ $fotoPerfil = $_SESSION['foto_perfil'] ?? null;
   <?php if (!empty($_SESSION['gestiona_usuarios'])): ?>
     <a class="nav-link" href="<?= BASE_URL ?>/usuarios">Usuarios</a>
   <?php endif; ?>
+  <?php if (($_SESSION['rol'] ?? '') === 'WEBMASTER'): ?>
+    <a class="nav-link" href="<?= BASE_URL ?>/actualizar-app">Actualizar App</a>
+  <?php endif; ?>
   </div>
   <span class="usuario-actual">
     <?php if ($fotoPerfil): ?>
