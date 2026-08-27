@@ -15,6 +15,13 @@
                         </div>
                     <?php endif; ?>
 
+                    <?php if (isset($_SESSION['error_actualizar_app'])): ?>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <?= htmlspecialchars($_SESSION['error_actualizar_app']); unset($_SESSION['error_actualizar_app']); ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    <?php endif; ?>
+
                     <form action="<?= BASE_URL ?>/actualizar-app/procesar" method="POST" enctype="multipart/form-data">
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -32,7 +39,7 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold">Archivo APK</label>
                             <input type="file" name="apk" class="form-control" accept=".apk">
-                            <div class="form-text">Sube el nuevo archivo .apk. Si lo dejas vacío, se mantendrá el archivo anterior.</div>
+                            <div class="form-text">Sube el nuevo archivo .apk (máx. 100MB). Si lo dejas vacío, se mantendrá el archivo anterior.</div>
                         </div>
 
                         <div class="mb-3 form-check form-switch">

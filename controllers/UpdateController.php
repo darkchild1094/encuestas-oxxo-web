@@ -26,32 +26,54 @@ class UpdateController
             exit;
         }
 
+        // Si el archivo excede post_max_size, PHP vacia $_POST y $_FILES
+        // por completo sin generar ningun error de $_FILES -- hay que
+        // detectarlo aparte revisando el Content-Length de la petición.
+        if (empty($_POST) && empty($_FILES) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+            $_SESSION['error_actualizar_app'] = 'El archivo es demasiado grande para el límite del servidor (post_max_size). Contacta al administrador.';
+            header('Location: ' . BASE_URL . '/actualizar-app');
+            exit;
+        }
+
         $version_code = (int)($_POST['version_code'] ?? 0);
         $version_name = $_POST['version_name'] ?? '';
         $obligatoria = isset($_POST['obligatoria']);
         $novedades = $_POST['novedades'] ?? '';
 
-        $apkUrl = "";
+        $configFile = __DIR__ . '/../config/version.json';
+        $oldData = file_exists($configFile) ? json_decode(file_get_contents($configFile), true) : [];
+        $apkUrl = $oldData['url'] ?? '';
 
         // Manejar subida de APK
-        if (!empty($_FILES['apk']['name']) && $_FILES['apk']['error'] === UPLOAD_ERR_OK) {
-            $nombreArchivo = 'app-release.apk';
-            $rutaDestino = __DIR__ . '/../public/updates/' . $nombreArchivo;
+        $archivoSubido = $_FILES['apk'] ?? null;
+        $huboIntentoDeSubida = $archivoSubido && $archivoSubido['error'] !== UPLOAD_ERR_NO_FILE;
 
+        if ($huboIntentoDeSubida) {
+            if ($archivoSubido['error'] !== UPLOAD_ERR_OK) {
+                $_SESSION['error_actualizar_app'] = self::mensajeErrorSubida($archivoSubido['error']);
+                header('Location: ' . BASE_URL . '/actualizar-app');
+                exit;
+            }
+
+            $extension = strtolower(pathinfo($archivoSubido['name'], PATHINFO_EXTENSION));
+            if ($extension !== 'apk') {
+                $_SESSION['error_actualizar_app'] = 'El archivo debe tener extensión .apk';
+                header('Location: ' . BASE_URL . '/actualizar-app');
+                exit;
+            }
+
+            $rutaDestino = __DIR__ . '/../public/updates/app-release.apk';
             if (!is_dir(dirname($rutaDestino))) {
-                mkdir(dirname($rutaDestino), 0777, true);
+                mkdir(dirname($rutaDestino), 0755, true);
             }
 
-            if (move_uploaded_file($_FILES['apk']['tmp_name'], $rutaDestino)) {
-                // Generar URL absoluta (ajustar segun dominio real si es necesario)
-                // Usamos una URL relativa que el App pueda interpretar o una fija.
-                $apkUrl = "https://fieldserviceplus.alwaysdata.net/nps/public/updates/" . $nombreArchivo;
+            if (!move_uploaded_file($archivoSubido['tmp_name'], $rutaDestino)) {
+                $_SESSION['error_actualizar_app'] = 'No se pudo guardar el archivo en el servidor. Revisa permisos de escritura en public/updates.';
+                header('Location: ' . BASE_URL . '/actualizar-app');
+                exit;
             }
-        } else {
-            // Si no se subió archivo, mantener la URL anterior si existe
-            $configFile = __DIR__ . '/../config/version.json';
-            $oldData = json_decode(file_get_contents($configFile), true);
-            $apkUrl = $oldData['url'] ?? "";
+
+            $apkUrl = "https://fieldserviceplus.alwaysdata.net/nps/public/updates/app-release.apk";
         }
 
         $newData = [
@@ -62,10 +84,29 @@ class UpdateController
             'novedades' => $novedades
         ];
 
-        file_put_contents(__DIR__ . '/../config/version.json', json_encode($newData, JSON_PRETTY_PRINT));
+        if (file_put_contents($configFile, json_encode($newData, JSON_PRETTY_PRINT)) === false) {
+            $_SESSION['error_actualizar_app'] = 'No se pudo guardar config/version.json. Revisa permisos de escritura.';
+            header('Location: ' . BASE_URL . '/actualizar-app');
+            exit;
+        }
 
-        $_SESSION['mensaje_exito'] = "Configuración de actualización guardada correctamente.";
+        $_SESSION['mensaje_exito'] = $huboIntentoDeSubida
+            ? "APK subido y configuración guardada correctamente."
+            : "Configuración guardada correctamente (sin cambiar el APK).";
         header('Location: ' . BASE_URL . '/actualizar-app');
         exit;
+    }
+
+    private static function mensajeErrorSubida(int $codigo): string
+    {
+        return match ($codigo) {
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE =>
+                'El archivo excede el tamaño máximo permitido por el servidor. Contacta al administrador para aumentar el límite.',
+            UPLOAD_ERR_PARTIAL => 'La subida se interrumpió a la mitad. Intenta de nuevo.',
+            UPLOAD_ERR_NO_TMP_DIR => 'Falta carpeta temporal en el servidor.',
+            UPLOAD_ERR_CANT_WRITE => 'No se pudo escribir el archivo en disco.',
+            UPLOAD_ERR_EXTENSION => 'Una extensión de PHP detuvo la subida del archivo.',
+            default => 'Error desconocido al subir el archivo (código ' . $codigo . ').',
+        };
     }
 }
