@@ -2,22 +2,24 @@
 
 class UpdateApiController
 {
-    /**
-     * Devuelve la información de la última versión disponible.
-     * En un entorno real, esto vendría de una tabla de configuración o un archivo.
-     */
     public function checkUpdate(): void
     {
-        // Configuración de la última versión
-        $latestUpdate = [
-            'version_code' => 2,
-            'version_name' => '1.1.0',
-            'url' => 'https://fieldserviceplus.alwaysdata.net/nps/public/updates/app-release.apk',
-            'obligatoria' => true,
-            'novedades' => 'Sistema de auto-actualización y caché offline mejorado.'
-        ];
+        $configFile = __DIR__ . '/../../config/version.json';
+
+        if (file_exists($configFile)) {
+            $data = json_decode(file_get_contents($configFile), true);
+        } else {
+            // Fallback si no existe el archivo
+            $data = [
+                'version_code' => 1,
+                'version_name' => '1.0.0',
+                'url' => '',
+                'obligatoria' => false,
+                'novedades' => ''
+            ];
+        }
 
         header('Content-Type: application/json');
-        echo json_encode($latestUpdate);
+        echo json_encode($data);
     }
 }

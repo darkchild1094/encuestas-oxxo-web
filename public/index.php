@@ -19,6 +19,7 @@ require_once __DIR__ . '/../controllers/AuthController.php';
 require_once __DIR__ . '/../controllers/UsuarioController.php';
 require_once __DIR__ . '/../controllers/PreguntaController.php';
 require_once __DIR__ . '/../controllers/RespuestaController.php';
+require_once __DIR__ . '/../controllers/UpdateController.php';
 
 // En Alwaysdata sin .htaccess, REQUEST_URI incluye la ruta completa
 $ruta = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -59,6 +60,10 @@ $rutas = [
     'POST /preguntas/crear' => [PreguntaController::class, 'crear'],
     'POST /preguntas/editar' => [PreguntaController::class, 'editar'],
     'POST /preguntas/eliminar' => [PreguntaController::class, 'eliminar'],
+
+    // Actualización de App
+    'GET /actualizar-app' => [UpdateController::class, 'index'],
+    'POST /actualizar-app/procesar' => [UpdateController::class, 'procesar'],
 ];
 
 $clave = "$metodo $ruta";
