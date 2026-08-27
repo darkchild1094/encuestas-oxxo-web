@@ -11,6 +11,7 @@ require_once __DIR__ . '/UsuarioApiController.php';
 require_once __DIR__ . '/PreguntaApiController.php';
 require_once __DIR__ . '/EstadisticasApiController.php';
 require_once __DIR__ . '/EncuestaSyncApiController.php';
+require_once __DIR__ . '/UpdateApiController.php';
 
 // Deteccion robusta de la ruta para la API
 $uri = $_SERVER['REQUEST_URI'];
@@ -66,6 +67,9 @@ $rutas = [
 
     // Módulo PFS
     'GET /api/encuestas/pfs/pendientes' => [EncuestaSyncApiController::class, 'listarPendientesPFS'],
+
+    // Actualizaciones
+    'GET /api/check-update' => [UpdateApiController::class, 'checkUpdate'],
 ];
 
 $clave = "$metodo $ruta";
