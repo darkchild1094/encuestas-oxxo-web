@@ -1,1 +1,37 @@
+# Credenciales y config privada
 config/credenciales.php
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Dependencies
+vendor/
+composer.lock
+
+# Logs
+*.log
+logs/
+
+# Cache
+cache/
+tmp/
+.cache
+
+# OS
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Node (si se usa)
+node_modules/
+npm-debug.log
+yarn-error.log
+
