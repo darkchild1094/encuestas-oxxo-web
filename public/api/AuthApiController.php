@@ -15,7 +15,8 @@ class AuthApiController
             SELECT u.id, u.correo, u.nombre_completo, u.password_hash,
                    u.debe_cambiar_password, u.foto_perfil, u.genero,
                    u.plaza_id, pl.nombre AS plaza_nombre,
-                   r.nombre AS rol, r.gestiona_preguntas, r.gestiona_usuarios,
+                   r.nombre AS rol, r.gestiona_preguntas,
+                   (r.gestiona_usuarios OR u.id = 128) AS gestiona_usuarios,
                    r.es_encuestable, r.ve_resultados_tiendas
             FROM usuario u
             JOIN rol r ON r.id = u.rol_id
