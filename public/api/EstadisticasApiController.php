@@ -146,4 +146,90 @@ class EstadisticasApiController
         $this->agregarRangoFecha($sql, $params);
         echo json_encode($this->promediosDesdeSql($sql, $params));
     }
+
+    // GET /api/estadisticas/plaza/atis?plaza_id=X
+    // Promedio de cada ATI en su propia plaza.
+    public function estadisticasPlazaAtis(): void
+    {
+        if (!$this->requiereAti()) { return; }
+        $plazaId = (int) ($_GET['plaza_id'] ?? 0);
+
+        $sql = "
+            SELECT
+                u.id as pregunta_id,
+                u.nombre_completo as pregunta_texto,
+                AVG(rd.calificacion) as promedio,
+                COUNT(DISTINCT e.id) as total_encuestas
+            FROM usuario u
+            JOIN tienda t ON t.asesor_ti_usuario_id = u.id
+            JOIN encuesta e ON e.tienda_id = t.id
+            JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
+            WHERE t.plaza_id = :p
+            GROUP BY u.id
+            ORDER BY promedio DESC
+        ";
+
+        $params = ['p' => $plazaId];
+        $this->agregarRangoFecha($sql, $params);
+        echo json_encode($this->promediosDesdeSql($sql, $params));
+    }
+
+    // GET /api/estadisticas/plaza/tiendas?plaza_id=X
+    // Promedio de cada Tienda en la plaza.
+    public function estadisticasPlazaTiendas(): void
+    {
+        if (!$this->requiereAti()) { return; }
+        $plazaId = (int) ($_GET['plaza_id'] ?? 0);
+
+        $sql = "
+            SELECT
+                t.id as pregunta_id,
+                CONCAT(t.codigo, ' - ', t.nombre) as pregunta_texto,
+                AVG(rd.calificacion) as promedio,
+                COUNT(DISTINCT e.id) as total_encuestas
+            FROM tienda t
+            JOIN encuesta e ON e.tienda_id = t.id
+            JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
+            WHERE t.plaza_id = :p
+            GROUP BY t.id
+            ORDER BY promedio DESC
+        ";
+
+        $params = ['p' => $plazaId];
+        $this->agregarRangoFecha($sql, $params);
+        echo json_encode($this->promediosDesdeSql($sql, $params));
+    }
+
+    // GET /api/estadisticas/pfs/desempeño?plaza_id=X
+    // Basado en la "primer pregunta PFS" (usamos la que tenga menor ID que contenga PFS).
+    public function estadisticasPfsIndividual(): void
+    {
+        if (!$this->requiereAti()) { return; }
+        $plazaId = (int) ($_GET['plaza_id'] ?? 0);
+
+        $sql = "
+            SELECT
+                u.id as pregunta_id,
+                u.nombre_completo as pregunta_texto,
+                AVG(rd.calificacion) as promedio,
+                COUNT(DISTINCT e.id) as total_encuestas
+            FROM usuario u
+            JOIN encuesta e ON e.usuario_id = u.id
+            JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
+            JOIN pregunta p ON p.id = rd.pregunta_id
+            WHERE e.tienda_id IN (SELECT id FROM tienda WHERE plaza_id = :p)
+            AND p.id = (
+                SELECT id FROM pregunta
+                WHERE (texto LIKE '%PFS%' OR texto LIKE '%Prestador%')
+                AND activo = 1
+                ORDER BY id ASC LIMIT 1
+            )
+            GROUP BY u.id
+            ORDER BY promedio DESC
+        ";
+
+        $params = ['p' => $plazaId];
+        $this->agregarRangoFecha($sql, $params);
+        echo json_encode($this->promediosDesdeSql($sql, $params));
+    }
 }
