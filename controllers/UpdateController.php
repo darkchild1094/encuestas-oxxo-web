@@ -44,6 +44,17 @@ class UpdateController
         $oldData = file_exists($configFile) ? json_decode(file_get_contents($configFile), true) : [];
         $apkUrl = $oldData['url'] ?? '';
 
+        $rutaDestino = __DIR__ . '/../public/updates/app-release.apk';
+        $urlCorrecta = "https://fieldserviceplus.alwaysdata.net/nps/updates/app-release.apk";
+
+        // Autocorregir la URL si ya existe un APK en disco pero la URL
+        // guardada quedo mal armada (ej. con /public/ de mas, que no
+        // corresponde al docroot real -- ver logo.png y demas assets
+        // que se sirven como /nps/assets/... sin /public/).
+        if (file_exists($rutaDestino) && $apkUrl !== $urlCorrecta) {
+            $apkUrl = $urlCorrecta;
+        }
+
         // Manejar subida de APK
         $archivoSubido = $_FILES['apk'] ?? null;
         $huboIntentoDeSubida = $archivoSubido && $archivoSubido['error'] !== UPLOAD_ERR_NO_FILE;
@@ -62,7 +73,6 @@ class UpdateController
                 exit;
             }
 
-            $rutaDestino = __DIR__ . '/../public/updates/app-release.apk';
             if (!is_dir(dirname($rutaDestino))) {
                 mkdir(dirname($rutaDestino), 0755, true);
             }
@@ -73,7 +83,7 @@ class UpdateController
                 exit;
             }
 
-            $apkUrl = "https://fieldserviceplus.alwaysdata.net/nps/public/updates/app-release.apk";
+            $apkUrl = $urlCorrecta;
         }
 
         $newData = [
