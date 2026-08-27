@@ -42,3 +42,5 @@ yarn-error.log
 *.jks
 *.p12
 *.pfx
+fieldserviceplus_nps.sql
+*.sql.dump
