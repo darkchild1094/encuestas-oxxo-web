@@ -51,8 +51,11 @@ class EncuestaSyncApiController
                 return;
             }
 
-            // PFS solo ve encuestas de su tienda; otros roles tienen acceso más amplio
-            if ($usuario['rol_nombre'] === 'PFS' && $encuesta['tienda_id'] != $usuario['tienda_id']) {
+            // PFS solo ve sus propias encuestas (las que el mismo capturo);
+            // otros roles tienen acceso mas amplio. Un PFS no tiene una
+            // tienda fija asignada -- visita varias dentro de su plaza,
+            // la tienda se elige por encuesta, no por usuario.
+            if ($usuario['rol_nombre'] === 'PFS' && (int) $encuesta['usuario_id'] !== (int) $usuario['id']) {
                 http_response_code(403);
                 echo json_encode(['error' => 'no tienes permiso para esta encuesta']);
                 return;
@@ -276,14 +279,15 @@ class EncuestaSyncApiController
                 return;
             }
 
-            // Verificar permiso de visualización
+            // Verificar permiso de visualización: un PFS solo ve el estado
+            // de sus propias encuestas (no tiene tienda fija asignada).
             if ($usuario['rol_nombre'] === 'PFS') {
                 $stmt = $pdo->prepare('
-                    SELECT tienda_id FROM encuesta WHERE id = ?
+                    SELECT usuario_id FROM encuesta WHERE id = ?
                 ');
                 $stmt->execute([$encuestaId]);
                 $enc = $stmt->fetch();
-                if ($enc['tienda_id'] != $usuario['tienda_id']) {
+                if (!$enc || (int) $enc['usuario_id'] !== (int) $usuario['id']) {
                     http_response_code(403);
                     echo json_encode(['error' => 'no tienes permiso para ver este estado']);
                     return;
@@ -291,6 +295,12 @@ class EncuestaSyncApiController
             }
 
             http_response_code(200);
+            // Mismo cuidado que en el resto del API: MySQL regresa
+            // TINYINT como "0"/"1" via PDO, y json_encode lo manda
+            // literal -- Gson en Android espera boolean, no numero.
+            $status['confirmado_servidor'] = (bool) $status['confirmado_servidor'];
+            $status['intento_numero'] = (int) $status['intento_numero'];
+            $status['codigo_respuesta'] = $status['codigo_respuesta'] !== null ? (int) $status['codigo_respuesta'] : null;
             echo json_encode($status);
         } catch (Exception $e) {
             http_response_code(500);
@@ -321,9 +331,15 @@ class EncuestaSyncApiController
         $pdo = Database::conexion();
 
         try {
+            // Un PFS ve SUS PROPIAS encuestas pendientes (las que el
+            // capturo), sin importar de que tienda sean -- no tiene una
+            // tienda fija asignada. Por eso cada fila trae su propia
+            // tienda_id/tienda_nombre en vez de un solo tienda_id global.
             $stmt = $pdo->prepare('
                 SELECT
                     e.id,
+                    e.tienda_id,
+                    t.nombre AS tienda_nombre,
                     e.folio,
                     e.fecha_creacion_local,
                     e.comentario,
@@ -335,18 +351,26 @@ class EncuestaSyncApiController
                     esl.fecha_confirmacion,
                     COUNT(rd.id) as total_respuestas
                 FROM encuesta e
+                JOIN tienda t ON t.id = e.tienda_id
                 LEFT JOIN encuesta_sync_log esl ON esl.encuesta_id = e.id
                 LEFT JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
-                WHERE e.tienda_id = ?
+                WHERE e.usuario_id = ?
                 GROUP BY e.id
                 ORDER BY e.fecha_creacion_local DESC
             ');
-            $stmt->execute([$usuario['tienda_id']]);
+            $stmt->execute([$usuario['id']]);
             $encuestas = $stmt->fetchAll();
+
+            foreach ($encuestas as &$enc) {
+                $enc['tienda_id'] = (int) $enc['tienda_id'];
+                $enc['sincronizado'] = (bool) $enc['sincronizado'];
+                $enc['total_respuestas'] = (int) $enc['total_respuestas'];
+                $enc['intento_numero'] = $enc['intento_numero'] !== null ? (int) $enc['intento_numero'] : null;
+            }
+            unset($enc);
 
             http_response_code(200);
             echo json_encode([
-                'tienda_id' => $usuario['tienda_id'],
                 'total_encuestas' => count($encuestas),
                 'encuestas' => $encuestas
             ]);
