@@ -71,22 +71,31 @@ class SyncApiController
         }
 
         $pdo = Database::conexion();
-        $pdo->beginTransaction();
 
+        $stmtEncuesta = $pdo->prepare('
+            INSERT IGNORE INTO encuesta
+                (id, usuario_id, tienda_id, cuestionario_id, folio, comentario, fecha_creacion_local, sincronizado, fecha_sincronizacion)
+            VALUES
+                (:id, :usuario_id, :tienda_id, :cuestionario_id, :folio, :comentario, :fecha_creacion_local, 1, NOW())
+        ');
+        $stmtRespuesta = $pdo->prepare('
+            INSERT IGNORE INTO respuesta_detalle (id, encuesta_id, pregunta_id, calificacion)
+            VALUES (:id, :encuesta_id, :pregunta_id, :calificacion)
+        ');
+        $stmtExiste = $pdo->prepare('SELECT 1 FROM encuesta WHERE id = :id');
+
+        // Una transaccion POR ENCUESTA (no una sola para todo el lote):
+        // si una encuesta del lote trae datos invalidos, que falle solo
+        // esa -- las demas del mismo lote no se deben perder por su culpa.
+        // Android ya soporta esto bien: solo marca sincronizado=true lo
+        // que venga en `sincronizadas`, el resto queda pendiente y el
+        // WorkManager lo reintenta despues.
         $sincronizadas = [];
-        try {
-            $stmtEncuesta = $pdo->prepare('
-                INSERT IGNORE INTO encuesta
-                    (id, usuario_id, tienda_id, cuestionario_id, folio, comentario, fecha_creacion_local, sincronizado, fecha_sincronizacion)
-                VALUES
-                    (:id, :usuario_id, :tienda_id, :cuestionario_id, :folio, :comentario, :fecha_creacion_local, 1, NOW())
-            ');
-            $stmtRespuesta = $pdo->prepare('
-                INSERT IGNORE INTO respuesta_detalle (id, encuesta_id, pregunta_id, calificacion)
-                VALUES (:id, :encuesta_id, :pregunta_id, :calificacion)
-            ');
+        $fallidas = [];
 
-            foreach ($encuestas as $e) {
+        foreach ($encuestas as $e) {
+            $pdo->beginTransaction();
+            try {
                 $stmtEncuesta->execute([
                     'id' => $e['id'],
                     'usuario_id' => $usuario['id'],
@@ -97,6 +106,21 @@ class SyncApiController
                     'fecha_creacion_local' => $e['fecha_creacion_local'],
                 ]);
 
+                // INSERT IGNORE no lanza excepcion si la fila no se pudo
+                // insertar (FK invalida, NOT NULL, etc.) -- rowCount()=0
+                // puede significar "ya existia" (reintento normal, bien)
+                // O "genuinamente fallo" (mal). Hay que distinguir: si
+                // sigue sin existir despues del intento, fallo de verdad
+                // y NO hay que insertar sus respuestas (si no, quedan
+                // huerfanas sin encuesta padre -- exactamente el bug que
+                // dejo 809 encuestas con respuestas pero sin cabecera).
+                if ($stmtEncuesta->rowCount() === 0) {
+                    $stmtExiste->execute(['id' => $e['id']]);
+                    if (!$stmtExiste->fetch()) {
+                        throw new Exception("la encuesta {$e['id']} (folio {$e['folio']}) no se pudo guardar -- revisa tienda_id/cuestionario_id/fecha");
+                    }
+                }
+
                 foreach ($e['respuestas'] as $r) {
                     $stmtRespuesta->execute([
                         'id' => $r['id'],
@@ -106,17 +130,21 @@ class SyncApiController
                     ]);
                 }
 
+                $pdo->commit();
                 $sincronizadas[] = $e['id'];
+            } catch (Exception $ex) {
+                $pdo->rollBack();
+                $fallidas[] = ['id' => $e['id'], 'folio' => $e['folio'] ?? null, 'error' => $ex->getMessage()];
             }
-
-            $pdo->commit();
-        } catch (Exception $ex) {
-            $pdo->rollBack();
-            http_response_code(500);
-            echo json_encode(['error' => 'fallo al guardar', 'detalle' => $ex->getMessage()]);
-            return;
         }
 
-        echo json_encode(['sincronizadas' => $sincronizadas]);
+        if ($fallidas) {
+            // No es un 500 -- puede venir mezclado con exitosas. El
+            // detalle de fallidas es para diagnostico/logs, Android solo
+            // necesita `sincronizadas` para decidir que marcar localmente.
+            error_log('subirEncuestas: ' . count($fallidas) . ' encuesta(s) rechazadas: ' . json_encode($fallidas));
+        }
+
+        echo json_encode(['sincronizadas' => $sincronizadas, 'fallidas' => $fallidas]);
     }
 }
