@@ -64,8 +64,6 @@ class EstadisticasApiController
     }
 
     // GET /api/estadisticas/pfs?plaza_id=X
-    // Promedio de cada pregunta en la plaza, filtrado por encuestas
-    // respondidas sobre tiendas de esa plaza.
     public function estadisticasPfs(): void
     {
         if (!$this->requiereAti()) { return; }
@@ -82,17 +80,17 @@ class EstadisticasApiController
             JOIN encuesta e ON e.id = rd.encuesta_id
             JOIN tienda t ON t.id = e.tienda_id
             WHERE t.plaza_id = :p AND p.activo = 1
-            GROUP BY p.id
-            ORDER BY p.es_fija ASC, p.orden ASC
         ";
 
         $params = ['p' => $plazaId];
         $this->agregarRangoFecha($sql, $params);
+
+        $sql .= " GROUP BY p.id ORDER BY p.es_fija ASC, p.orden ASC";
+
         echo json_encode($this->promediosDesdeSql($sql, $params));
     }
 
     // GET /api/estadisticas/region/atis?plaza_id=X
-    // Promedio total de cada ATI en toda la region a la que pertenece la plaza.
     public function estadisticasRegionAtis(): void
     {
         if (!$this->requiereAti()) { return; }
@@ -111,17 +109,17 @@ class EstadisticasApiController
             WHERE t.plaza_id IN (
                 SELECT id FROM plaza WHERE region_id = (SELECT region_id FROM plaza WHERE id = :p)
             )
-            GROUP BY u.id
-            ORDER BY promedio DESC
         ";
 
         $params = ['p' => $plazaId];
         $this->agregarRangoFecha($sql, $params);
+
+        $sql .= " GROUP BY u.id ORDER BY promedio DESC";
+
         echo json_encode($this->promediosDesdeSql($sql, $params));
     }
 
     // GET /api/estadisticas/region/plazas?plaza_id=X
-    // Promedio total de cada Plaza en toda la region.
     public function estadisticasRegionPlazas(): void
     {
         if (!$this->requiereAti()) { return; }
@@ -138,17 +136,17 @@ class EstadisticasApiController
             JOIN encuesta e ON e.tienda_id = t.id
             JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
             WHERE pl.region_id = (SELECT region_id FROM plaza WHERE id = :p)
-            GROUP BY pl.id
-            ORDER BY promedio DESC
         ";
 
         $params = ['p' => $plazaId];
         $this->agregarRangoFecha($sql, $params);
+
+        $sql .= " GROUP BY pl.id ORDER BY promedio DESC";
+
         echo json_encode($this->promediosDesdeSql($sql, $params));
     }
 
     // GET /api/estadisticas/plaza/atis?plaza_id=X
-    // Promedio de cada ATI en su propia plaza.
     public function estadisticasPlazaAtis(): void
     {
         if (!$this->requiereAti()) { return; }
@@ -165,17 +163,17 @@ class EstadisticasApiController
             JOIN encuesta e ON e.tienda_id = t.id
             JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
             WHERE t.plaza_id = :p
-            GROUP BY u.id
-            ORDER BY promedio DESC
         ";
 
         $params = ['p' => $plazaId];
         $this->agregarRangoFecha($sql, $params);
+
+        $sql .= " GROUP BY u.id ORDER BY promedio DESC";
+
         echo json_encode($this->promediosDesdeSql($sql, $params));
     }
 
     // GET /api/estadisticas/plaza/tiendas?plaza_id=X
-    // Promedio de cada Tienda en la plaza.
     public function estadisticasPlazaTiendas(): void
     {
         if (!$this->requiereAti()) { return; }
@@ -191,17 +189,17 @@ class EstadisticasApiController
             JOIN encuesta e ON e.tienda_id = t.id
             JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
             WHERE t.plaza_id = :p
-            GROUP BY t.id
-            ORDER BY promedio DESC
         ";
 
         $params = ['p' => $plazaId];
         $this->agregarRangoFecha($sql, $params);
+
+        $sql .= " GROUP BY t.id ORDER BY promedio DESC";
+
         echo json_encode($this->promediosDesdeSql($sql, $params));
     }
 
-    // GET /api/estadisticas/pfs/desempeño?plaza_id=X
-    // Basado en la "primer pregunta PFS" (usamos la que tenga menor ID que contenga PFS).
+    // GET /api/estadisticas/pfs/desempeno?plaza_id=X
     public function estadisticasPfsIndividual(): void
     {
         if (!$this->requiereAti()) { return; }
@@ -224,12 +222,14 @@ class EstadisticasApiController
                 AND activo = 1
                 ORDER BY id ASC LIMIT 1
             )
-            GROUP BY u.id
-            ORDER BY promedio DESC
         ";
 
         $params = ['p' => $plazaId];
         $this->agregarRangoFecha($sql, $params);
+
+        $sql .= " GROUP BY u.id ORDER BY promedio DESC";
+
         echo json_encode($this->promediosDesdeSql($sql, $params));
     }
+}
 }

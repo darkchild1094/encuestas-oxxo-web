@@ -12,6 +12,8 @@ require_once __DIR__ . '/PreguntaApiController.php';
 require_once __DIR__ . '/EstadisticasApiController.php';
 require_once __DIR__ . '/EncuestaSyncApiController.php';
 require_once __DIR__ . '/UpdateApiController.php';
+require_once __DIR__ . '/SoporteApiController.php';
+require_once __DIR__ . '/NotificacionApiController.php';
 
 // Deteccion robusta de la ruta para la API
 $uri = $_SERVER['REQUEST_URI'];
@@ -74,6 +76,17 @@ $rutas = [
 
     // Actualizaciones
     'GET /api/check-update' => [UpdateApiController::class, 'checkUpdate'],
+
+    // Soporte / Bugs
+    'POST /api/soporte/crear' => [SoporteApiController::class, 'crear'],
+    'GET /api/soporte/mis-tickets' => [SoporteApiController::class, 'misTickets'],
+    'GET /api/soporte/admin/lista' => [SoporteApiController::class, 'adminLista'],
+    'GET /api/soporte/detalle' => [SoporteApiController::class, 'detalle'],
+    'POST /api/soporte/comentar' => [SoporteApiController::class, 'comentar'],
+    'POST /api/soporte/resolver' => [SoporteApiController::class, 'resolver'],
+
+    // Notificaciones
+    'GET /api/notificaciones' => [NotificacionApiController::class, 'obtener'],
 ];
 
 $clave = "$metodo $ruta";
