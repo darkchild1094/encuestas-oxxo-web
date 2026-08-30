@@ -32,9 +32,11 @@ class RespuestaApiController
                 e.id AS encuesta_id, e.folio, e.fecha_creacion_local, e.comentario,
                 t.nombre AS tienda, t.codigo AS tienda_codigo,
                 ati.id AS ati_id, ati.nombre_completo AS ati_nombre,
+                u.correo AS usuario,
                 preg.texto AS pregunta, rd.calificacion
             FROM encuesta e
             JOIN tienda t ON t.id = e.tienda_id
+            LEFT JOIN usuario u ON u.id = e.usuario_id
             LEFT JOIN usuario ati ON ati.id = t.asesor_ti_usuario_id
             JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
             JOIN pregunta preg ON preg.id = rd.pregunta_id
