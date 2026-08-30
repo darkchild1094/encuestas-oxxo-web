@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../src/ApiAuth.php';
 
 class NotificacionApiController
 {
-    private function tableExists(PDO $pdo, string $table): bool
+    private function tableExists($pdo, $table)
     {
         try {
             $result = $pdo->query("SELECT 1 FROM $table LIMIT 1");
@@ -15,23 +15,23 @@ class NotificacionApiController
         }
     }
 
-    public function obtener(): void
+    public function obtener()
     {
         $usuario = ApiAuth::usuarioDesdeToken();
         if (!$usuario) {
             http_response_code(401);
-            echo json_encode(['error' => 'token invalido o vencido']);
+            echo json_encode(array('error' => 'token invalido o vencido'));
             return;
         }
 
-        $desde = $_GET['desde'] ?? '';
+        $desde = isset($_GET['desde']) ? $_GET['desde'] : '';
         $fecha = DateTime::createFromFormat('!Y-m-d H:i:s', $desde);
         if (!$fecha || $fecha->format('Y-m-d H:i:s') !== $desde) {
             $desde = date('Y-m-d H:i:s', strtotime('-1 hour'));
         }
 
         $pdo = Database::conexion();
-        $notificaciones = [];
+        $notificaciones = array();
 
         // 1. Nuevas Encuestas (Solo para ATIs y sus tiendas asignadas)
         if ($usuario['rol_nombre'] === 'ATI') {
@@ -42,15 +42,15 @@ class NotificacionApiController
                 WHERE t.asesor_ti_usuario_id = :ati
                   AND e.fecha_creacion_local > :desde
             ');
-            $stmt->execute(['ati' => $usuario['id'], 'desde' => $desde]);
+            $stmt->execute(array('ati' => $usuario['id'], 'desde' => $desde));
             $res = $stmt->fetch();
             if ($res && $res['total'] > 0) {
-                $notificaciones[] = [
+                $notificaciones[] = array(
                     'tipo' => 'NUEVA_ENCUESTA',
                     'titulo' => 'Resultados Actualizados',
                     'mensaje' => $res['total'] == 1 ? "Se recibió 1 nueva encuesta en tus tiendas." : "Se recibieron {$res['total']} nuevas encuestas.",
-                    'data' => ['total' => (string)$res['total']]
-                ];
+                    'data' => array('total' => (string)$res['total'])
+                );
             }
         }
 
@@ -59,15 +59,15 @@ class NotificacionApiController
             // 2. Soporte: Nuevos tickets (Solo para Webmaster)
             if ($usuario['rol_nombre'] === 'WEBMASTER') {
                 $stmt = $pdo->prepare('SELECT COUNT(*) as total FROM soporte_ticket WHERE fecha_creacion > :desde AND estatus = "ABIERTO"');
-                $stmt->execute(['desde' => $desde]);
+                $stmt->execute(array('desde' => $desde));
                 $res = $stmt->fetch();
                 if ($res && $res['total'] > 0) {
-                    $notificaciones[] = [
+                    $notificaciones[] = array(
                         'tipo' => 'SOPORTE_NUEVO',
                         'titulo' => 'Nuevo Reporte de Soporte',
                         'mensaje' => "Hay {$res['total']} nuevo(s) reporte(s) de problemas pendientes.",
-                        'data' => ['total' => (string)$res['total']]
-                    ];
+                        'data' => array('total' => (string)$res['total'])
+                    );
                 }
             }
 
@@ -81,25 +81,25 @@ class NotificacionApiController
                   AND (t.usuario_id = :uid OR :es_wm = 1)
                 GROUP BY t.id
             ');
-            $stmt->execute([
+            $stmt->execute(array(
                 'desde' => $desde,
                 'uid' => $usuario['id'],
                 'es_wm' => $usuario['rol_nombre'] === 'WEBMASTER' ? 1 : 0
-            ]);
+            ));
             $ticketsActualizados = $stmt->fetchAll();
             foreach ($ticketsActualizados as $tk) {
-                $notificaciones[] = [
+                $notificaciones[] = array(
                     'tipo' => 'SOPORTE_MENSAJE',
                     'titulo' => 'Actualización en Soporte',
                     'mensaje' => "Nuevo mensaje en el folio #{$tk['ticket_id']}: {$tk['asunto']}",
-                    'data' => ['ticket_id' => (string)$tk['ticket_id']]
-                ];
+                    'data' => array('ticket_id' => (string)$tk['ticket_id'])
+                );
             }
         }
 
-        echo json_encode([
+        echo json_encode(array(
             'notificaciones' => $notificaciones,
             'server_time' => date('Y-m-d H:i:s')
-        ]);
+        ));
     }
 }
