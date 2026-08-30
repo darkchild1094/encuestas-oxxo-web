@@ -109,14 +109,20 @@ class UpdateController
 
     private static function mensajeErrorSubida(int $codigo): string
     {
-        return match ($codigo) {
-            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE =>
-                'El archivo excede el tamaño máximo permitido por el servidor. Contacta al administrador para aumentar el límite.',
-            UPLOAD_ERR_PARTIAL => 'La subida se interrumpió a la mitad. Intenta de nuevo.',
-            UPLOAD_ERR_NO_TMP_DIR => 'Falta carpeta temporal en el servidor.',
-            UPLOAD_ERR_CANT_WRITE => 'No se pudo escribir el archivo en disco.',
-            UPLOAD_ERR_EXTENSION => 'Una extensión de PHP detuvo la subida del archivo.',
-            default => 'Error desconocido al subir el archivo (código ' . $codigo . ').',
-        };
+        switch ($codigo) {
+            case UPLOAD_ERR_INI_SIZE:
+            case UPLOAD_ERR_FORM_SIZE:
+                return 'El archivo excede el tamaño máximo permitido por el servidor. Contacta al administrador para aumentar el límite.';
+            case UPLOAD_ERR_PARTIAL:
+                return 'La subida se interrumpió a la mitad. Intenta de nuevo.';
+            case UPLOAD_ERR_NO_TMP_DIR:
+                return 'Falta carpeta temporal en el servidor.';
+            case UPLOAD_ERR_CANT_WRITE:
+                return 'No se pudo escribir el archivo en disco.';
+            case UPLOAD_ERR_EXTENSION:
+                return 'Una extensión de PHP detuvo la subida del archivo.';
+            default:
+                return 'Error desconocido al subir el archivo (código ' . $codigo . ').';
+        }
     }
 }

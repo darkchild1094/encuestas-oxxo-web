@@ -26,9 +26,10 @@ if (preg_match('#(/api/.*)$#', $ruta, $m)) {
 
 $metodo = $_SERVER['REQUEST_METHOD'];
 
-// Router simple con soporte para IDs en la URL
-$rutas = [
-    'POST /api/login' => [AuthApiController::class, 'login'],
+try {
+    // Router simple con soporte para IDs en la URL
+    $rutas = [
+        'POST /api/login' => [AuthApiController::class, 'login'],
     'GET /api/auth/validar' => [AuthApiController::class, 'validar'],
     'GET /api/cuestionario' => [SyncApiController::class, 'obtenerCuestionario'],
     'POST /api/encuestas' => [SyncApiController::class, 'subirEncuestas'],
@@ -98,8 +99,18 @@ if ($metodo === 'DELETE' && preg_match('#^/api/(usuarios|preguntas)/(\d+)$#', $r
 }
 
 if (isset($rutas[$clave])) {
-    [$clase, $accion] = $rutas[$clave];
-    (new $clase())->$accion();
+    try {
+        [$clase, $accion] = $rutas[$clave];
+        (new $clase())->$accion();
+    } catch (Throwable $e) {
+        http_response_code(500);
+        echo json_encode([
+            'error' => 'error fatal en controlador',
+            'mensaje' => $e->getMessage(),
+            'archivo' => $e->getFile(),
+            'linea' => $e->getLine()
+        ]);
+    }
 } else {
     http_response_code(404);
     echo json_encode([
