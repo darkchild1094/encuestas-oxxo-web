@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../src/ApiAuth.php';
 
 class AuthApiController
 {
@@ -49,23 +50,45 @@ class AuthApiController
 
         $token = bin2hex(random_bytes(32));
 
-        // Limpiar tokens anteriores del mismo usuario
-        $pdo->prepare('DELETE FROM token_acceso WHERE usuario_id = :uid')->execute(['uid' => $usuario['id']]);
-
+        // Antes se borraba CUALQUIER token anterior de este usuario_id
+        // en cada login. Eso invalidaba sesiones activas en otros
+        // dispositivos (o la sesion recordada del mismo dispositivo) --
+        // si justo en ese momento habia encuestas pendientes de subir
+        // con el token viejo, se quedaban muertas para siempre (la app
+        // solo reintentaba con un token que ya nunca iba a funcionar).
+        // Ahora cada login simplemente AGREGA un token nuevo; los viejos
+        // siguen validos hasta su propia fecha de expiracion.
+        //
         // Aprovechamos que ya estamos escribiendo en esta tabla para
-        // limpiar tambien cualquier token vencido de OTROS usuarios.
-        // Ya con el indice de la migracion de rendimiento esto es
-        // barato, y evita que la tabla crezca sin limite con tokens
-        // de gente que dejo de usar la app.
+        // limpiar tokens vencidos de paso (de cualquier usuario) y que
+        // la tabla no crezca sin limite.
         $pdo->exec('DELETE FROM token_acceso WHERE fecha_expiracion < NOW()');
 
+        // "Para siempre" en la practica: 10 anios. DATETIME de MySQL
+        // aguanta hasta el 9999, pero no tiene sentido una sesion mas
+        // larga que eso -- para cuando expire, seguro ya cambio de
+        // telefono varias veces.
         $stmt = $pdo->prepare('
             INSERT INTO token_acceso (token, usuario_id, fecha_expiracion)
-            VALUES (:token, :usuario_id, DATE_ADD(NOW(), INTERVAL 30 DAY))
+            VALUES (:token, :usuario_id, DATE_ADD(NOW(), INTERVAL 10 YEAR))
         ');
         $stmt->execute(['token' => $token, 'usuario_id' => $usuario['id']]);
 
         unset($usuario['password_hash']);
         echo json_encode(['token' => $token, 'usuario' => $usuario]);
+    }
+
+    // GET /api/auth/validar -- para que la app confirme al abrir que su
+    // token guardado sigue siendo valido, y si no, mande a login de una
+    // vez en vez de descubrirlo a medias de un sync fallido en silencio.
+    public function validar(): void
+    {
+        $usuario = ApiAuth::usuarioDesdeToken();
+        if (!$usuario) {
+            http_response_code(401);
+            echo json_encode(['valido' => false]);
+            return;
+        }
+        echo json_encode(['valido' => true]);
     }
 }

@@ -27,6 +27,7 @@ $metodo = $_SERVER['REQUEST_METHOD'];
 // Router simple con soporte para IDs en la URL
 $rutas = [
     'POST /api/login' => [AuthApiController::class, 'login'],
+    'GET /api/auth/validar' => [AuthApiController::class, 'validar'],
     'GET /api/cuestionario' => [SyncApiController::class, 'obtenerCuestionario'],
     'POST /api/encuestas' => [SyncApiController::class, 'subirEncuestas'],
     'GET /api/negocios' => [CatalogoApiController::class, 'negocios'],
