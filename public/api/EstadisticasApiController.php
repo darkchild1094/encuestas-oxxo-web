@@ -232,4 +232,3 @@ class EstadisticasApiController
         echo json_encode($this->promediosDesdeSql($sql, $params));
     }
 }
-}
