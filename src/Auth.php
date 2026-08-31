@@ -3,12 +3,21 @@
 class Auth
 {
     public static function iniciar(): void
-    {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_name('NPS_SESSID');
+        $params = session_get_cookie_params();
+        session_set_cookie_params([
+            'lifetime' => $params['lifetime'],
+            'path' => '/nps',
+            'domain' => $params['domain'],
+            'secure' => true,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+        session_start();
     }
-
+}
     // Guarda en sesion lo minimo necesario para pintar el menu y
     // checar permisos sin volver a pegarle a la BD en cada request.
     public static function login(array $usuario): void
