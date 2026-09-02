@@ -1,24 +1,34 @@
 # Carpeta de archivos subidos por usuarios (fotos de perfil). Aqui NUNCA
-# debe ejecutarse codigo: si alguien logra colar un .php/.phtml disfrazado
-# de imagen, este .htaccess evita que el servidor lo interprete y lo
-# entrega como texto plano.
+# debe ejecutarse codigo: si alguien logra colar un .php disfrazado de
+# imagen, esto evita que el servidor lo interprete.
+#
+# OJO: nada de "php_flag" / "php_value" aqui. Este hosting corre PHP por
+# FPM (existe .user.ini), no mod_php, y esas directivas en .htaccess
+# tumban toda la carpeta con Error 500 (por eso dejaron de verse las
+# fotos). Basta con negar el acceso a las extensiones ejecutables.
 
-# Apache 2.4+
+Options -ExecCGI -Indexes
+
 <IfModule mod_authz_core.c>
-    <FilesMatch "\.(php|php\d|phtml|phar|pl|py|cgi|sh|asp|aspx|jsp)$">
+    <FilesMatch "\.(?i:php|phtml|phar|pht|php[0-9]|phps|pl|py|cgi|sh|lua|asp|aspx|jsp)$">
         Require all denied
     </FilesMatch>
 </IfModule>
-
-# Apache 2.2
 <IfModule !mod_authz_core.c>
-    <FilesMatch "\.(php|php\d|phtml|phar|pl|py|cgi|sh|asp|aspx|jsp)$">
+    <FilesMatch "\.(php|phtml|phar|pht|php3|php4|php5|php7|phps|pl|py|cgi|sh|asp|aspx|jsp)$">
         Order allow,deny
         Deny from all
     </FilesMatch>
 </IfModule>
 
-php_flag engine off
-Options -ExecCGI -Indexes
-RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .phar
-AddType text/plain .php .phtml .phar
+# Desactiva mod_php SOLO si de verdad esta cargado (en FPM este bloque
+# simplemente se ignora, no da error).
+<IfModule mod_php.c>
+    php_admin_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_admin_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_admin_flag engine off
+</IfModule>
