@@ -150,7 +150,7 @@ class ReporteRespuestas
         ], $filasRegion);
 
         if ($filasRegion) {
-            $w->agregarGraficaBarras($idx, 'Promedio general por región', 'Región', ['Promedio general']);
+            $w->agregarGraficaBarras($idx, 'Promedio general por región', 'Región', ['Promedio general'], 'Total encuestas');
         }
     }
 
@@ -200,7 +200,7 @@ class ReporteRespuestas
         ], $datos);
 
         if ($datos) {
-            $w->agregarGraficaBarras($idx, 'Promedio por región', 'Región', ['Promedio general', 'Promedio todas las preguntas']);
+            $w->agregarGraficaBarras($idx, 'Promedio por región', 'Región', ['Promedio general', 'Promedio todas las preguntas'], 'Total encuestas');
         }
     }
 
@@ -284,7 +284,7 @@ class ReporteRespuestas
         ], $datos);
 
         if ($datos) {
-            $w->agregarGraficaBarras($idx, 'Promedio general por ATI', 'ATI', ['Promedio general']);
+            $w->agregarGraficaBarras($idx, 'Promedio general por ATI', 'ATI', ['Promedio general'], 'Total encuestas');
         }
     }
 
@@ -385,7 +385,7 @@ class ReporteRespuestas
         ], $datos);
 
         if ($datos) {
-            $w->agregarGraficaBarras($idx, 'Promedio de satisfacción por PFS', 'PFS (técnico)', ['Promedio PFS']);
+            $w->agregarGraficaBarras($idx, 'Promedio de satisfacción por PFS', 'PFS (técnico)', ['Promedio PFS'], 'Total respuestas');
         }
     }
 
@@ -427,7 +427,7 @@ class ReporteRespuestas
         ], $datos);
 
         if ($datos) {
-            $w->agregarGraficaBarras($idx, 'Promedio PFS por región', 'Región', ['Promedio PFS']);
+            $w->agregarGraficaBarras($idx, 'Promedio PFS por región', 'Región', ['Promedio PFS'], 'Total respuestas');
         }
     }
 

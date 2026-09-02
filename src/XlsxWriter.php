@@ -87,14 +87,17 @@ final class XlsxWriter
     /**
      * @param int $hojaIndice Indice regresado por agregarHoja()
      * @param array<int, string> $columnasValor Titulos exactos de columnas numericas a graficar
+     * @param string|null $columnaPeso Titulo de una columna entera (ej. "Total encuestas")
+     *        para promediar ponderado al unir filas repetidas; null = promedio simple.
      */
-    public function agregarGraficaBarras(int $hojaIndice, string $titulo, string $columnaCategoria, array $columnasValor): void
+    public function agregarGraficaBarras(int $hojaIndice, string $titulo, string $columnaCategoria, array $columnasValor, ?string $columnaPeso = null): void
     {
         $this->graficas[] = [
             'hojaIndice' => $hojaIndice,
             'titulo' => $titulo,
             'columnaCategoria' => $columnaCategoria,
             'columnasValor' => $columnasValor,
+            'columnaPeso' => $columnaPeso,
         ];
     }
 
@@ -360,11 +363,13 @@ final class XlsxWriter
         $anchors = '';
         $filaBase = $totalFilasDatos + 3; // deja espacio debajo de la tabla
         foreach (array_values($graficas) as $i => $grafica) {
-            $filaInicio = $filaBase + ($i * 20);
-            $filaFin = $filaInicio + 18;
+            // Mas alto y ancho que antes: los nombres largos de ATI/PFS van
+            // rotados en el eje y necesitan aire para no encimarse.
+            $filaInicio = $filaBase + ($i * 30);
+            $filaFin = $filaInicio + 28;
             $anchors .= '<xdr:twoCellAnchor>'
                 . '<xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' . $filaInicio . '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>'
-                . '<xdr:to><xdr:col>8</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' . $filaFin . '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>'
+                . '<xdr:to><xdr:col>13</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' . $filaFin . '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>'
                 . '<xdr:graphicFrame macro="">'
                 . '<xdr:nvGraphicFramePr><xdr:cNvPr id="' . ($i + 2) . '" name="Grafica' . ($i + 1) . '"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>'
                 . '<xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm>'
@@ -397,57 +402,134 @@ final class XlsxWriter
         return $paleta[$indice % count($paleta)];
     }
 
-    private function chartXml(array $hoja, array $grafica): string
+    /**
+     * Une las filas que comparten el mismo nombre de categoria en un solo
+     * punto -- asi un ATI o PFS que trabaja en varias plazas sale con una
+     * sola barra y no repetido. Los promedios se combinan ponderando por la
+     * columna de peso (numero de encuestas/respuestas); las columnas enteras
+     * se suman; sin peso se hace promedio simple.
+     *
+     * @return array{0: list<string>, 1: array<int, list<float|int>>}
+     *         [categorias, valores] con valores[$serieIdx][$categoriaIdx]
+     */
+    private function consolidarParaGrafica(array $hoja, array $grafica): array
     {
-        $nombreHoja = $this->escapar($hoja['nombre']);
-        $columnas = array_column($hoja['columnas'], 'titulo');
-        $colCategoria = array_search($grafica['columnaCategoria'], $columnas, true);
-        $totalFilas = count($hoja['filas']);
-        $ultimaFila = $totalFilas + 1;
+        $titulos = array_column($hoja['columnas'], 'titulo');
+        $colCat = (int) array_search($grafica['columnaCategoria'], $titulos, true);
+        $colPeso = isset($grafica['columnaPeso']) && $grafica['columnaPeso'] !== null
+            ? array_search($grafica['columnaPeso'], $titulos, true)
+            : false;
 
-        $refCategoria = "'" . $nombreHoja . "'!\$" . $this->colLetra((int) $colCategoria) . "\$2:\$" . $this->colLetra((int) $colCategoria) . "\$" . $ultimaFila;
-        $catCache = '';
-        foreach ($hoja['filas'] as $i => $fila) {
-            $catCache .= '<c:pt idx="' . $i . '"><c:v>' . $this->escapar((string) $fila[$colCategoria]) . '</c:v></c:pt>';
+        $series = [];
+        foreach (array_values($grafica['columnasValor']) as $sIdx => $tituloCol) {
+            $idx = (int) array_search($tituloCol, $titulos, true);
+            $series[$sIdx] = ['idx' => $idx, 'formato' => $hoja['columnas'][$idx]['formato'] ?? 'texto'];
         }
 
-        $series = '';
-        foreach (array_values($grafica['columnasValor']) as $sIdx => $tituloCol) {
-            $colValor = array_search($tituloCol, $columnas, true);
-            $refTitulo = "'" . $nombreHoja . "'!\$" . $this->colLetra((int) $colValor) . "\$1";
-            $refValor = "'" . $nombreHoja . "'!\$" . $this->colLetra((int) $colValor) . "\$2:\$" . $this->colLetra((int) $colValor) . "\$" . $ultimaFila;
-            $valCache = '';
-            foreach ($hoja['filas'] as $i => $fila) {
-                $v = is_numeric($fila[$colValor]) ? $fila[$colValor] : 0;
-                $valCache .= '<c:pt idx="' . $i . '"><c:v>' . $v . '</c:v></c:pt>';
-            }
+        $orden = [];      // categoria => posicion (mantiene el orden de aparicion)
+        $peso = [];        // categoria => suma de pesos
+        $conteo = [];      // categoria => filas unidas
+        $prod = [];        // [serie][categoria] => suma(valor * peso)
+        $suma = [];        // [serie][categoria] => suma(valor)
 
+        foreach ($hoja['filas'] as $fila) {
+            $cat = (string) ($fila[$colCat] ?? '');
+            if (!isset($orden[$cat])) {
+                $orden[$cat] = count($orden);
+                $peso[$cat] = 0.0;
+                $conteo[$cat] = 0;
+            }
+            $p = ($colPeso !== false && is_numeric($fila[$colPeso] ?? null)) ? (float) $fila[$colPeso] : 1.0;
+            $peso[$cat] += $p;
+            $conteo[$cat]++;
+            foreach ($series as $sIdx => $meta) {
+                $v = is_numeric($fila[$meta['idx']] ?? null) ? (float) $fila[$meta['idx']] : 0.0;
+                $prod[$sIdx][$cat] = ($prod[$sIdx][$cat] ?? 0.0) + $v * $p;
+                $suma[$sIdx][$cat] = ($suma[$sIdx][$cat] ?? 0.0) + $v;
+            }
+        }
+
+        $categorias = array_keys($orden);
+        $valores = [];
+        foreach ($series as $sIdx => $meta) {
+            foreach ($categorias as $catIdx => $cat) {
+                if ($meta['formato'] === 'entero') {
+                    $valores[$sIdx][$catIdx] = (int) round($suma[$sIdx][$cat]);
+                } elseif ($colPeso !== false && $peso[$cat] > 0) {
+                    $valores[$sIdx][$catIdx] = round($prod[$sIdx][$cat] / $peso[$cat], 1);
+                } else {
+                    $valores[$sIdx][$catIdx] = round($suma[$sIdx][$cat] / max(1, $conteo[$cat]), 1);
+                }
+            }
+        }
+
+        return [$categorias, $valores];
+    }
+
+    private function chartXml(array $hoja, array $grafica): string
+    {
+        // Datos incrustados (strLit/numLit) en vez de referencias a celdas:
+        // la tabla de la hoja sigue con el desglose por plaza, pero la grafica
+        // muestra un punto por nombre ya consolidado y Excel no lo "re-expande".
+        [$categorias, $valoresPorSerie] = $this->consolidarParaGrafica($hoja, $grafica);
+        $totalCategorias = count($categorias);
+
+        $catPts = '';
+        foreach ($categorias as $i => $cat) {
+            $catPts .= '<c:pt idx="' . $i . '"><c:v>' . $this->escapar($cat) . '</c:v></c:pt>';
+        }
+
+        $columnasValor = array_values($grafica['columnasValor']);
+        $multiSerie = count($columnasValor) > 1;
+
+        $series = '';
+        foreach ($columnasValor as $sIdx => $tituloCol) {
+            $valPts = '';
+            foreach ($valoresPorSerie[$sIdx] as $i => $v) {
+                $valPts .= '<c:pt idx="' . $i . '"><c:v>' . $v . '</c:v></c:pt>';
+            }
             $series .= '<c:ser>'
                 . '<c:idx val="' . $sIdx . '"/><c:order val="' . $sIdx . '"/>'
-                . '<c:tx><c:strRef><c:f>' . $refTitulo . '</c:f><c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>' . $this->escapar($tituloCol) . '</c:v></c:pt></c:strCache></c:strRef></c:tx>'
+                . '<c:tx><c:v>' . $this->escapar($tituloCol) . '</c:v></c:tx>'
                 . '<c:spPr><a:solidFill><a:srgbClr val="' . $this->colorSerie($sIdx) . '"/></a:solidFill></c:spPr>'
-                . '<c:cat><c:strRef><c:f>' . $refCategoria . '</c:f><c:strCache><c:ptCount val="' . $totalFilas . '"/>' . $catCache . '</c:strCache></c:strRef></c:cat>'
-                . '<c:val><c:numRef><c:f>' . $refValor . '</c:f><c:numCache><c:formatCode>0.0</c:formatCode><c:ptCount val="' . $totalFilas . '"/>' . $valCache . '</c:numCache></c:numRef></c:val>'
+                . '<c:cat><c:strLit><c:ptCount val="' . $totalCategorias . '"/>' . $catPts . '</c:strLit></c:cat>'
+                . '<c:val><c:numLit><c:formatCode>0.0</c:formatCode><c:ptCount val="' . $totalCategorias . '"/>' . $valPts . '</c:numLit></c:val>'
                 . '</c:ser>';
         }
 
         $titulo = $this->escapar($grafica['titulo']);
+        // Solo hay leyenda cuando hay mas de una serie. Con una sola serie
+        // Excel listaba un item por categoria (los nombres se veian dobles).
+        $leyenda = $multiSerie ? '<c:legend><c:legendPos val="b"/><c:overlay val="0"/></c:legend>' : '';
 
         return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             . '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
             . '<c:chart>'
-            . '<c:title><c:tx><c:rich><a:bodyPr/><a:p><a:r><a:t>' . $titulo . '</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title>'
+            . '<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="1200" b="1"/></a:pPr><a:r><a:rPr lang="es-MX" sz="1200" b="1"/><a:t>' . $titulo . '</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title>'
             . '<c:autoTitleDeleted val="0"/>'
             . '<c:plotArea><c:layout/>'
-            . '<c:barChart><c:barDir val="col"/><c:grouping val="clustered"/>'
+            . '<c:barChart><c:barDir val="col"/><c:grouping val="clustered"/><c:varyColors val="0"/>'
             . $series
+            . '<c:gapWidth val="60"/>'
+            . ($multiSerie ? '<c:overlap val="-15"/>' : '')
             . '<c:axId val="111111111"/><c:axId val="222222222"/>'
             . '</c:barChart>'
-            . '<c:catAx><c:axId val="111111111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:crossAx val="222222222"/></c:catAx>'
-            . '<c:valAx><c:axId val="222222222"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:crossAx val="111111111"/></c:valAx>'
+            . '<c:catAx><c:axId val="111111111"/><c:scaling><c:orientation val="minMax"/></c:scaling>'
+            . '<c:delete val="0"/><c:axPos val="b"/>'
+            . '<c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/>'
+            . '<c:txPr><a:bodyPr rot="-2700000" spcFirstLastPara="1" vertOverflow="ellipsis" vert="horz" wrap="square" anchor="ctr" anchorCtr="1"/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="800"/></a:pPr><a:endParaRPr lang="es-MX"/></a:p></c:txPr>'
+            . '<c:crossAx val="222222222"/><c:crosses val="autoZero"/>'
+            . '<c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/><c:noMultiLvlLbl val="0"/>'
+            . '</c:catAx>'
+            . '<c:valAx><c:axId val="222222222"/><c:scaling><c:orientation val="minMax"/></c:scaling>'
+            . '<c:delete val="0"/><c:axPos val="l"/><c:majorGridlines/>'
+            . '<c:numFmt formatCode="0.0" sourceLinked="0"/>'
+            . '<c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/>'
+            . '<c:crossAx val="111111111"/><c:crosses val="autoZero"/><c:crossBetween val="between"/>'
+            . '</c:valAx>'
             . '</c:plotArea>'
-            . '<c:legend><c:legendPos val="b"/></c:legend>'
-            . '<c:plotVisOnly val="1"/>'
+            . $leyenda
+            . '<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/>'
             . '</c:chart>'
             . '</c:chartSpace>';
     }
