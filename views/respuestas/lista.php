@@ -19,7 +19,7 @@ foreach ($filas as $fila) {
 ?>
 <div class="page-heading">
   <div>
-    <p class="eyebrow">Plaza <?= htmlspecialchars($_SESSION['plaza_id'] ?? '') ?></p>
+    <p class="eyebrow"><?= !empty($esAtiGlobal) ? 'Todas las plazas' : e($plazaNombre ?? 'Sin plaza asignada') ?></p>
     <h1>Respuestas de tiendas</h1>
   </div>
   <?php if ($tiendaId): ?>

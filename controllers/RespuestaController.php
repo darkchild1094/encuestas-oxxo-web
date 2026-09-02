@@ -86,6 +86,16 @@ class RespuestaController
         $pdo = Database::conexion();
 
         $esAtiGlobal = (int) $_SESSION['usuario_id'] === 128;
+
+        // Nombre de la plaza de la sesion para el subtitulo (antes se
+        // pintaba el id crudo: "Plaza 1").
+        $plazaNombre = null;
+        if (!$esAtiGlobal && !empty($_SESSION['plaza_id'])) {
+            $stmtPlaza = $pdo->prepare('SELECT nombre FROM plaza WHERE id = :id');
+            $stmtPlaza->execute(['id' => $_SESSION['plaza_id']]);
+            $plazaNombre = $stmtPlaza->fetchColumn() ?: null;
+        }
+
         $filtroPlaza = $esAtiGlobal ? '' : ' AND u.plaza_id = :plaza_id';
         $stmt = $pdo->prepare("\n            SELECT u.id, u.nombre_completo\n            FROM usuario u\n            JOIN rol r ON r.id = u.rol_id\n            WHERE r.nombre = 'ATI'{$filtroPlaza}\n            ORDER BY u.nombre_completo\n        ");
         $stmt->execute($esAtiGlobal ? [] : ['plaza_id' => $_SESSION['plaza_id']]);
