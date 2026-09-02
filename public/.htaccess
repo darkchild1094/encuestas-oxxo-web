@@ -7,3 +7,39 @@ RewriteCond %{REQUEST_FILENAME} !-d
 
 # Reescribir TODO a index.php
 RewriteRule ^(.*)$ index.php [L,QSA]
+
+# --- Endurecimiento basico ---
+Options -Indexes
+
+# Bloquea el acceso web a archivos sensibles que pudieran quedar aqui
+<FilesMatch "(^\.|\.(bak|old|sql|ini|log|md|sh|dist|example)$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# --- Cache de estaticos (los sirve Apache directo, sin pasar por PHP) ---
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/jpeg "access plus 30 days"
+    ExpiresByType image/webp "access plus 30 days"
+    ExpiresByType font/woff2 "access plus 30 days"
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|svg|png|jpe?g|webp|woff2?)$">
+        Header set Cache-Control "public, max-age=604800"
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript application/json image/svg+xml
+</IfModule>

@@ -7,6 +7,7 @@
   <?php unset($_SESSION['error_password']); ?>
 <?php endif; ?>
 <form method="POST" action="<?= BASE_URL ?>/cambiar-password" class="password-form">
+  <?= Csrf::campo() ?>
   <label class="form-label" for="password">Nueva password</label><input class="form-control mb-3" id="password" type="password" name="password" minlength="8" required>
   <label class="form-label" for="password_confirmar">Confirmar</label><input class="form-control mb-4" id="password_confirmar" type="password" name="password_confirmar" minlength="8" required>
   <button class="btn btn-primary w-100" type="submit">Guardar</button>

@@ -23,13 +23,14 @@
     <?php unset($_SESSION['error_login']); ?>
   <?php endif; ?>
   <form method="POST" action="<?= BASE_URL ?>/login" class="login-form">
+    <?= Csrf::campo() ?>
     <div class="mb-3">
       <label class="form-label" for="correo">Correo</label>
-      <input class="form-control" id="correo" type="email" name="correo" placeholder="nombre@oxxo.com" required autofocus>
+      <input class="form-control" id="correo" type="email" name="correo" placeholder="nombre@oxxo.com" required autofocus autocomplete="username">
     </div>
     <div class="mb-4">
       <label class="form-label" for="password">Contraseña</label>
-      <input class="form-control" id="password" type="password" name="password" placeholder="Escribe tu contraseña" required>
+      <input class="form-control" id="password" type="password" name="password" placeholder="Escribe tu contraseña" required autocomplete="current-password">
     </div>
     <button class="btn btn-primary w-100" type="submit">Entrar al panel <span aria-hidden="true">&rarr;</span></button>
   </form>

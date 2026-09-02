@@ -2,9 +2,14 @@
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../src/Auth.php';
+require_once __DIR__ . '/../src/RateLimit.php';
 
 class AuthController
 {
+    // Fuerza bruta: 8 intentos fallidos por IP en 15 min => enfriamiento.
+    private const LOGIN_MAX_INTENTOS = 8;
+    private const LOGIN_VENTANA_SEG = 900;
+
     public function mostrarLogin(): void
     {
         require __DIR__ . '/../views/login.php';
@@ -15,6 +20,15 @@ class AuthController
         Auth::iniciar();
         $correo = trim($_POST['correo'] ?? '');
         $password = $_POST['password'] ?? '';
+
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'desconocida';
+        $claveLimite = 'login:' . $ip;
+        if (!RateLimit::permitido($claveLimite, self::LOGIN_MAX_INTENTOS, self::LOGIN_VENTANA_SEG)) {
+            $minutos = (int) ceil(RateLimit::esperaSegundos($claveLimite, self::LOGIN_VENTANA_SEG) / 60);
+            $_SESSION['error_login'] = "Demasiados intentos fallidos. Espera unos {$minutos} min e intenta de nuevo.";
+            header('Location: ' . BASE_URL . '/login');
+            exit;
+        }
 
         $pdo = Database::conexion();
         $stmt = $pdo->prepare('
@@ -32,6 +46,7 @@ class AuthController
         $usuario = $stmt->fetch();
 
         if (!$usuario || !password_verify($password, $usuario['password_hash'])) {
+            RateLimit::registrarFallo($claveLimite);
             $_SESSION['error_login'] = 'Correo o contrasena incorrectos.';
             header('Location: ' . BASE_URL . '/login');
             exit;
@@ -45,6 +60,7 @@ class AuthController
             exit;
         }
 
+        RateLimit::limpiar($claveLimite);
         Auth::login($usuario);
 
         if ($usuario['debe_cambiar_password']) {
@@ -65,7 +81,7 @@ class AuthController
         Auth::requiereLogin();
 
         if (!empty($_SESSION['ve_resultados_tiendas'])) {
-            header('Location: ' . BASE_URL . '/respuestas');
+            header('Location: ' . BASE_URL . '/dashboard');
         } elseif (!empty($_SESSION['gestiona_usuarios'])) {
             header('Location: ' . BASE_URL . '/usuarios');
         } elseif (!empty($_SESSION['gestiona_preguntas'])) {

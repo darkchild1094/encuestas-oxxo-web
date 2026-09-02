@@ -102,12 +102,17 @@ if (isset($rutas[$clave])) {
         [$clase, $accion] = $rutas[$clave];
         (new $clase())->$accion();
     } catch (Throwable $e) {
+        // Nunca devolver al cliente la ruta del archivo, la linea ni el
+        // mensaje crudo de la excepcion: eso filtra estructura interna y
+        // a veces fragmentos de SQL. Se registra en el log del servidor y
+        // al cliente solo le llega un id para poder rastrearlo.
+        $ref = bin2hex(random_bytes(4));
+        error_log("[api $ref] " . $e::class . ': ' . $e->getMessage()
+            . ' @ ' . $e->getFile() . ':' . $e->getLine());
         http_response_code(500);
         echo json_encode([
-            'error' => 'error fatal en controlador',
-            'mensaje' => $e->getMessage(),
-            'archivo' => $e->getFile(),
-            'linea' => $e->getLine()
+            'error' => 'error interno del servidor',
+            'referencia' => $ref,
         ]);
     }
 } else {

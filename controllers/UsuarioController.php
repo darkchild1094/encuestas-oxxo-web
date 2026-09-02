@@ -6,6 +6,21 @@ require_once __DIR__ . '/../src/Auth.php';
 // Solo webmaster entra aqui (gestiona_usuarios).
 class UsuarioController
 {
+    // El usuario 128 es el ATI global (ve todas las plazas, permisos
+    // ampliados en el login). No se le cambia rol/plaza ni se borra desde
+    // el CRUD para no dejar al sistema sin ese acceso.
+    private const ID_PROTEGIDO = 128;
+
+    private function esProtegido(int $id): bool
+    {
+        return $id === self::ID_PROTEGIDO;
+    }
+
+    private function esYoMismo(int $id): bool
+    {
+        return $id === (int) ($_SESSION['usuario_id'] ?? 0);
+    }
+
     public function index(): void
     {
         Auth::requierePermiso('gestiona_usuarios');
@@ -42,6 +57,12 @@ class UsuarioController
         $plazaId = (int) ($_POST['plaza_id'] ?? 0) ?: null;
         $genero = $this->generoValido($_POST['genero'] ?? null);
 
+        if (!filter_var($correo, FILTER_VALIDATE_EMAIL) || $nombreCompleto === '' || $rolId <= 0) {
+            $_SESSION['error_usuarios'] = 'Revisa los datos: correo valido, nombre y rol son obligatorios.';
+            header('Location: ' . BASE_URL . '/usuarios');
+            exit;
+        }
+
         $rutaFoto = $this->guardarFotoSiViene();
 
         // Password temporal: se muestra UNA sola vez en el mensaje de
@@ -53,15 +74,26 @@ class UsuarioController
             INSERT INTO usuario (rol_id, plaza_id, correo, nombre_completo, genero, password_hash, foto_perfil, debe_cambiar_password)
             VALUES (:rol_id, :plaza_id, :correo, :nombre, :genero, :hash, :foto, 1)
         ');
-        $stmt->execute([
-            'rol_id' => $rolId,
-            'plaza_id' => $plazaId,
-            'correo' => $correo,
-            'nombre' => $nombreCompleto,
-            'genero' => $genero,
-            'hash' => password_hash($temporal, PASSWORD_DEFAULT),
-            'foto' => $rutaFoto,
-        ]);
+        try {
+            $stmt->execute([
+                'rol_id' => $rolId,
+                'plaza_id' => $plazaId,
+                'correo' => $correo,
+                'nombre' => $nombreCompleto,
+                'genero' => $genero,
+                'hash' => password_hash($temporal, PASSWORD_DEFAULT),
+                'foto' => $rutaFoto,
+            ]);
+        } catch (PDOException $e) {
+            // 23000 = violacion de restriccion (correo duplicado, rol_id
+            // o plaza_id inexistente). Se informa sin volcar el error.
+            $_SESSION['error_usuarios'] = ($e->getCode() === '23000')
+                ? 'Ese correo ya esta registrado (o el rol/plaza no existe).'
+                : 'No se pudo crear el usuario.';
+            error_log('[usuarios/crear] ' . $e->getMessage());
+            header('Location: ' . BASE_URL . '/usuarios');
+            exit;
+        }
 
         $_SESSION['mensaje'] = "Usuario creado. Password temporal: $temporal (copiala ahora, no se vuelve a mostrar).";
         header('Location: ' . BASE_URL . '/usuarios');
@@ -119,15 +151,29 @@ class UsuarioController
             return null;
         }
 
+        // Tope de tamano: una foto de perfil no necesita mas de 5 MB y
+        // asi no se llena el disco con subidas enormes.
+        if (($_FILES['foto_perfil']['size'] ?? 0) > 5 * 1024 * 1024) {
+            return null;
+        }
+
         $permitidos = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-        $tipo = mime_content_type($_FILES['foto_perfil']['tmp_name']);
+        $tipo = function_exists('mime_content_type')
+            ? mime_content_type($_FILES['foto_perfil']['tmp_name'])
+            : null;
         if (!isset($permitidos[$tipo])) {
             return null; // tipo no soportado, se ignora silenciosamente
         }
 
+        $carpeta = __DIR__ . '/../public/uploads/perfiles/';
+        if (!is_dir($carpeta) && !@mkdir($carpeta, 0755, true) && !is_dir($carpeta)) {
+            return null;
+        }
+
         $nombreArchivo = bin2hex(random_bytes(16)) . '.' . $permitidos[$tipo];
-        $destino = __DIR__ . '/../public/uploads/perfiles/' . $nombreArchivo;
-        move_uploaded_file($_FILES['foto_perfil']['tmp_name'], $destino);
+        if (!move_uploaded_file($_FILES['foto_perfil']['tmp_name'], $carpeta . $nombreArchivo)) {
+            return null;
+        }
 
         return 'uploads/perfiles/' . $nombreArchivo;
     }
@@ -137,6 +183,12 @@ class UsuarioController
         Auth::requierePermiso('gestiona_usuarios');
         $id = (int) ($_POST['id'] ?? 0);
         $rolId = (int) ($_POST['rol_id'] ?? 0);
+
+        if ($id <= 0 || $rolId <= 0 || $this->esProtegido($id) || $this->esYoMismo($id)) {
+            $_SESSION['error_usuarios'] = 'No puedes cambiar tu propio rol ni el del ATI global.';
+            header('Location: ' . BASE_URL . '/usuarios');
+            exit;
+        }
 
         $pdo = Database::conexion();
         $stmt = $pdo->prepare('UPDATE usuario SET rol_id = :rol_id WHERE id = :id');
@@ -151,6 +203,12 @@ class UsuarioController
         Auth::requierePermiso('gestiona_usuarios');
         $id = (int) ($_POST['id'] ?? 0);
         $plazaId = (int) ($_POST['plaza_id'] ?? 0) ?: null;
+
+        if ($id <= 0 || $this->esProtegido($id)) {
+            $_SESSION['error_usuarios'] = 'El ATI global no se asigna a una sola plaza.';
+            header('Location: ' . BASE_URL . '/usuarios');
+            exit;
+        }
 
         $pdo = Database::conexion();
         $stmt = $pdo->prepare('UPDATE usuario SET plaza_id = :plaza_id WHERE id = :id');
@@ -186,6 +244,12 @@ class UsuarioController
     {
         Auth::requierePermiso('gestiona_usuarios');
         $id = (int) ($_POST['id'] ?? 0);
+
+        if ($id <= 0 || $this->esProtegido($id) || $this->esYoMismo($id)) {
+            $_SESSION['error_usuarios'] = 'No puedes eliminarte a ti mismo ni al ATI global.';
+            header('Location: ' . BASE_URL . '/usuarios');
+            exit;
+        }
 
         // encuesta.usuario_id es ON DELETE SET NULL, asi que borrar un
         // usuario no rompe el historial de encuestas ya contestadas.

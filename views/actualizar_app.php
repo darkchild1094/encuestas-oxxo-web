@@ -1,4 +1,4 @@
-<?php require __DIR__ . '/layout_header.php'; ?>
+<?php $tituloPagina = 'Actualizar App'; require __DIR__ . '/layout_header.php'; ?>
 
 <div class="container mt-4">
     <div class="row justify-content-center">
@@ -23,15 +23,16 @@
                     <?php endif; ?>
 
                     <form action="<?= BASE_URL ?>/actualizar-app/procesar" method="POST" enctype="multipart/form-data">
+                        <?= Csrf::campo() ?>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Version Code (Número)</label>
-                                <input type="number" name="version_code" class="form-control" value="<?= $version['version_code'] ?>" required>
+                                <input type="number" name="version_code" class="form-control" value="<?= (int) $version['version_code'] ?>" required>
                                 <div class="form-text">Ejemplo: 2 (Debe ser mayor al actual)</div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Version Name (Texto)</label>
-                                <input type="text" name="version_name" class="form-control" value="<?= $version['version_name'] ?>" placeholder="v1.1.0" required>
+                                <input type="text" name="version_name" class="form-control" value="<?= e($version['version_name'] ?? '') ?>" placeholder="v1.1.0" required>
                                 <div class="form-text">Ejemplo: 1.1.0</div>
                             </div>
                         </div>
@@ -65,9 +66,9 @@
             <div class="mt-4 p-3 bg-light rounded border">
                 <h5><i class="fas fa-info-circle me-2"></i>Estado Actual</h5>
                 <ul class="list-unstyled mb-0">
-                    <li><strong>Versión en servidor:</strong> <?= $version['version_name'] ?> (Build <?= $version['version_code'] ?>)</li>
-                    <li><strong>URL del APK:</strong> <code class="small"><?= $version['url'] ?: 'No definida' ?></code></li>
-                    <li><strong>Tipo:</strong> <?= $version['obligatoria'] ? '<span class="badge bg-danger">Crítica</span>' : '<span class="badge bg-info">Opcional</span>' ?></li>
+                    <li><strong>Versión en servidor:</strong> <?= e($version['version_name'] ?? '') ?> (Build <?= (int) ($version['version_code'] ?? 0) ?>)</li>
+                    <li><strong>URL del APK:</strong> <code class="small"><?= e($version['url'] ?? '') ?: 'No definida' ?></code></li>
+                    <li><strong>Tipo:</strong> <?= !empty($version['obligatoria']) ? '<span class="badge bg-danger">Crítica</span>' : '<span class="badge bg-info">Opcional</span>' ?></li>
                 </ul>
             </div>
         </div>

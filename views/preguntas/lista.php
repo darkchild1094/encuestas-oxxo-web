@@ -1,4 +1,4 @@
-<?php require __DIR__ . '/../layout_header.php'; ?>
+<?php $tituloPagina = 'Preguntas'; require __DIR__ . '/../layout_header.php'; ?>
 <div class="page-heading">
   <div><p class="eyebrow">Configuración</p><h1>Preguntas</h1></div>
 </div>
@@ -21,6 +21,7 @@
 <?php if ($cuestionario): ?>
 <div class="section-intro"><h2>Nueva pregunta &mdash; <?= htmlspecialchars($cuestionario['nombre']) ?></h2></div>
 <form method="POST" action="<?= BASE_URL ?>/preguntas/crear" class="card border-0 shadow-sm p-3 mb-4">
+  <?= Csrf::campo() ?>
   <input type="hidden" name="cuestionario_id" value="<?= $cuestionario['id'] ?>">
   <input type="hidden" name="plaza_id" value="<?= $plazaId ?>">
   <div class="row align-items-end g-3">
@@ -36,6 +37,7 @@
   <tr>
     <td colspan="3">
       <form method="POST" action="<?= BASE_URL ?>/preguntas/editar" class="inline-form">
+        <?= Csrf::campo() ?>
         <input type="hidden" name="id" value="<?= $p['id'] ?>">
         <input type="hidden" name="plaza_id" value="<?= $plazaId ?>">
         <input class="form-control form-control-sm d-inline-block w-auto" type="number" name="orden" value="<?= $p['orden'] ?>" <?= $p['es_fija'] ? 'disabled' : '' ?>>
@@ -47,6 +49,7 @@
       </form>
       <?php if (!$p['es_fija']): ?>
       <form method="POST" action="<?= BASE_URL ?>/preguntas/eliminar" class="inline-form" onsubmit="return confirm('¿Quitar esta pregunta?')">
+        <?= Csrf::campo() ?>
         <input type="hidden" name="id" value="<?= $p['id'] ?>">
         <input type="hidden" name="plaza_id" value="<?= $plazaId ?>">
         <button type="submit" class="btn btn-sm btn-outline-danger">Quitar</button>

@@ -147,4 +147,44 @@ class RespuestaController
         echo $xlsx;
         exit;
     }
+
+    // Export ligero en CSV del detalle crudo (una fila por respuesta),
+    // util para abrir rapido en cualquier herramienta o pegarlo en Sheets.
+    public function exportarCsv(): void
+    {
+        if (($_SESSION['rol'] ?? '') !== 'ATI') {
+            http_response_code(403);
+            echo 'Solo el rol ATI puede exportar las respuestas de tiendas.';
+            exit;
+        }
+        Auth::requierePermiso('ve_resultados_tiendas');
+
+        $filtros = $this->filtrosDesdeGet();
+        unset($filtros['ati_id'], $filtros['tienda_id']);
+        $filas = $this->query($filtros);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="respuestas_pulso_ti_' . date('Y-m-d_His') . '.csv"');
+
+        $out = fopen('php://output', 'w');
+        fwrite($out, "\xEF\xBB\xBF"); // BOM para que Excel respete acentos
+        fputcsv($out, ['Folio', 'Fecha', 'Negocio', 'Region', 'Plaza', 'Tienda', 'ATI', 'PFS (usuario)', 'Pregunta', 'Calificacion', 'Comentario']);
+        foreach ($filas as $f) {
+            fputcsv($out, [
+                $f['folio'] ?? '',
+                $f['fecha_creacion_local'] ?? '',
+                $f['negocio'] ?? '',
+                $f['region'] ?? '',
+                $f['plaza'] ?? '',
+                $f['tienda'] ?? '',
+                $f['ati_nombre'] ?? 'Sin ATI asignado',
+                $f['usuario'] ?? '(usuario eliminado)',
+                $f['pregunta'] ?? '',
+                (int) ($f['calificacion'] ?? 0),
+                $f['comentario'] ?? '',
+            ]);
+        }
+        fclose($out);
+        exit;
+    }
 }

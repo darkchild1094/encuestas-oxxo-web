@@ -1,0 +1,24 @@
+# Carpeta de archivos subidos por usuarios (fotos de perfil). Aqui NUNCA
+# debe ejecutarse codigo: si alguien logra colar un .php/.phtml disfrazado
+# de imagen, este .htaccess evita que el servidor lo interprete y lo
+# entrega como texto plano.
+
+# Apache 2.4+
+<IfModule mod_authz_core.c>
+    <FilesMatch "\.(php|php\d|phtml|phar|pl|py|cgi|sh|asp|aspx|jsp)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+# Apache 2.2
+<IfModule !mod_authz_core.c>
+    <FilesMatch "\.(php|php\d|phtml|phar|pl|py|cgi|sh|asp|aspx|jsp)$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
+php_flag engine off
+Options -ExecCGI -Indexes
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .phar
+AddType text/plain .php .phtml .phar

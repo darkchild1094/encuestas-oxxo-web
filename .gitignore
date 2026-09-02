@@ -3,6 +3,10 @@ config/credenciales.php
 .env
 .env.local
 
+# Fotos de perfil subidas por usuarios (datos, no codigo)
+public/uploads/perfiles/*
+!public/uploads/perfiles/.gitkeep
+
 # IDE
 .vscode/
 .idea/
