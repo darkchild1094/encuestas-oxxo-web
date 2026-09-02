@@ -3,6 +3,7 @@
 header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../src/AppVersion.php';
 require_once __DIR__ . '/AuthApiController.php';
 require_once __DIR__ . '/SyncApiController.php';
 require_once __DIR__ . '/CatalogoApiController.php';
@@ -25,6 +26,30 @@ if (preg_match('#(/api/.*)$#', $ruta, $m)) {
 }
 
 $metodo = $_SERVER['REQUEST_METHOD'];
+
+// --- Gate de version minima (426 Upgrade Required) ---
+// Si la app reporta su versionCode (header X-App-Version) y esta por debajo
+// del minimo permitido, no la dejamos operar. Se exceptua /api/check-update
+// para que la propia app pueda enterarse de que quedo bloqueada y mostrar
+// la pantalla de actualizacion con el link del APK.
+if ($ruta !== '/api/check-update') {
+    $cfgApp = AppVersion::config();
+    $verCliente = AppVersion::versionCliente();
+    if (AppVersion::debeForzar($cfgApp, $verCliente)) {
+        http_response_code(426);
+        echo json_encode([
+            'error' => 'app_desactualizada',
+            'mensaje' => 'Debes actualizar la aplicacion para poder continuar.',
+            'force_update' => true,
+            'client_version_code' => $verCliente,
+            'min_version_code' => (int) $cfgApp['min_version_code'],
+            'version_code' => (int) $cfgApp['version_code'],
+            'version_name' => $cfgApp['version_name'],
+            'url' => $cfgApp['url'],
+        ]);
+        exit;
+    }
+}
 
 // Router simple con soporte para IDs en la URL
 $rutas = [

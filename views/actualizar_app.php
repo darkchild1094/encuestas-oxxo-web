@@ -44,9 +44,19 @@
                         </div>
 
                         <div class="mb-3 form-check form-switch">
-                            <input class="form-check-input" type="checkbox" name="obligatoria" id="obligatoria" <?= $version['obligatoria'] ? 'checked' : '' ?>>
+                            <input class="form-check-input" type="checkbox" name="obligatoria" id="obligatoria" <?= !empty($version['obligatoria']) ? 'checked' : '' ?>>
                             <label class="form-check-label fw-bold" for="obligatoria">Actualización Obligatoria</label>
-                            <div class="form-text">Si se marca, el usuario no podrá usar la app hasta que instale esta versión.</div>
+                            <div class="form-text">La app se guía por este flag: si está marcado y la app instalada es más vieja que este Version Code, se bloquea. Sirve también para las apps antiguas que no reportan su versión.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Versión mínima permitida (build)</label>
+                            <input type="number" name="min_version_code" class="form-control" value="<?= (int) ($version['min_version_code'] ?? 0) ?>" min="0">
+                            <div class="form-text">
+                                Candado del servidor: toda app cuyo build sea <strong>menor</strong> a este número recibe <code>426</code> en toda la API y no puede operar hasta actualizar.
+                                <br><strong>0</strong> = sin candado. Se recorta solo si lo pones mayor al Version Code de arriba.
+                                Requiere que la app envíe el header <code>X-App-Version</code>; para las que no lo hacen, usa además "Actualización Obligatoria".
+                            </div>
                         </div>
 
                         <div class="mb-4">
@@ -69,6 +79,10 @@
                     <li><strong>Versión en servidor:</strong> <?= e($version['version_name'] ?? '') ?> (Build <?= (int) ($version['version_code'] ?? 0) ?>)</li>
                     <li><strong>URL del APK:</strong> <code class="small"><?= e($version['url'] ?? '') ?: 'No definida' ?></code></li>
                     <li><strong>Tipo:</strong> <?= !empty($version['obligatoria']) ? '<span class="badge bg-danger">Crítica</span>' : '<span class="badge bg-info">Opcional</span>' ?></li>
+                    <li><strong>Versión mínima (candado 426):</strong>
+                        <?php $mvc = (int) ($version['min_version_code'] ?? 0); ?>
+                        <?= $mvc > 0 ? "build $mvc <span class=\"badge bg-danger\">candado activo</span>" : '<span class="badge bg-secondary">sin candado</span>' ?>
+                    </li>
                 </ul>
             </div>
         </div>

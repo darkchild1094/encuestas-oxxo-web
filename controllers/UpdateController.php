@@ -13,7 +13,9 @@ class UpdateController
         }
 
         $configFile = __DIR__ . '/../config/version.json';
-        $version = json_decode(file_get_contents($configFile), true);
+        $version = json_decode(file_get_contents($configFile), true) ?: [];
+        // Campo nuevo: asegurar que la vista siempre lo tenga.
+        $version['min_version_code'] = (int) ($version['min_version_code'] ?? 0);
 
         require __DIR__ . '/../views/actualizar_app.php';
     }
@@ -39,6 +41,14 @@ class UpdateController
         $version_name = $_POST['version_name'] ?? '';
         $obligatoria = isset($_POST['obligatoria']);
         $novedades = $_POST['novedades'] ?? '';
+
+        // Piso de version: toda app por debajo de esto queda bloqueada por
+        // el servidor (426). No tiene sentido pedir un minimo mayor a la
+        // version que se esta publicando, asi que se recorta.
+        $min_version_code = max(0, (int)($_POST['min_version_code'] ?? 0));
+        if ($min_version_code > $version_code) {
+            $min_version_code = $version_code;
+        }
 
         $configFile = __DIR__ . '/../config/version.json';
         $oldData = file_exists($configFile) ? json_decode(file_get_contents($configFile), true) : [];
@@ -91,6 +101,7 @@ class UpdateController
             'version_name' => $version_name,
             'url' => $apkUrl,
             'obligatoria' => $obligatoria,
+            'min_version_code' => $min_version_code,
             'novedades' => $novedades
         ];
 

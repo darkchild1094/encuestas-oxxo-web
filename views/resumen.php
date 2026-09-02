@@ -25,6 +25,7 @@
     <dl class="data-list">
       <div><dt>Version</dt><dd><?= e($versionApp['version_name'] ?? 'n/d') ?> <small>(build <?= e((string) ($versionApp['version_code'] ?? '?')) ?>)</small></dd></div>
       <div><dt>Tipo</dt><dd><?= !empty($versionApp['obligatoria']) ? '<span class="badge-tag badge-danger">Obligatoria</span>' : '<span class="badge-tag">Opcional</span>' ?></dd></div>
+      <div><dt>Candado 426</dt><dd><?php $mvc = (int) ($versionApp['min_version_code'] ?? 0); ?><?= $mvc > 0 ? 'build &ge; ' . $mvc : 'sin candado' ?></dd></div>
       <div><dt>APK</dt><dd class="mono-wrap"><?= e($versionApp['url'] ?? 'No definida') ?></dd></div>
       <div><dt>Encuestas 30 dias</dt><dd><?= number_format((int) $conteos['encuestas_30d']) ?></dd></div>
     </dl>
