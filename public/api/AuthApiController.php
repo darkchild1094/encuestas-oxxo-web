@@ -21,7 +21,7 @@ class AuthApiController
                    u.plaza_id, pl.nombre AS plaza_nombre,
                    r.nombre AS rol, r.gestiona_preguntas,
                    (r.gestiona_usuarios OR u.id = 128) AS gestiona_usuarios,
-                   r.es_encuestable, r.ve_resultados_tiendas
+                   r.es_encuestable, r.ve_resultados_tiendas, r.contesta_oficina
             FROM usuario u
             JOIN rol r ON r.id = u.rol_id
             LEFT JOIN plaza pl ON pl.id = u.plaza_id
@@ -42,6 +42,7 @@ class AuthApiController
         $usuario['gestiona_usuarios'] = (bool) $usuario['gestiona_usuarios'];
         $usuario['es_encuestable'] = (bool) $usuario['es_encuestable'];
         $usuario['ve_resultados_tiendas'] = (bool) $usuario['ve_resultados_tiendas'];
+        $usuario['contesta_oficina'] = (bool) $usuario['contesta_oficina'];
         $usuario['debe_cambiar_password'] = (bool) $usuario['debe_cambiar_password'];
 
         if ($usuario['plaza_id'] !== null) {
