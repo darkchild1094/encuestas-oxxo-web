@@ -18,7 +18,7 @@ foreach ($filas as $fila) {
   $encuestas[$id]['respuestas'][] = $fila;
 }
 ?>
-<nav class="nav nav-pills mb-4" aria-label="Tipo de encuesta">
+<nav class="ambito-toggle" aria-label="Tipo de encuesta">
   <a class="nav-link <?= $ambito === 'tiendas' ? 'active' : '' ?>" href="<?= BASE_URL ?>/respuestas?ambito=tiendas">Tiendas</a>
   <a class="nav-link <?= $ambito === 'oficina' ? 'active' : '' ?>" href="<?= BASE_URL ?>/respuestas?ambito=oficina">Oficina</a>
 </nav>

@@ -159,7 +159,11 @@ a { color: var(--red); }
   justify-content: space-between;
 }
 .nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-.nav-link {
+/* Escapado a .topnav .nav-link: esta regla es SOLO para la barra roja de
+   arriba (texto blanco). Sin el prefijo se colaba a cualquier otro
+   ".nav-link" de la pagina (ej. el switch Tiendas/Oficina, sobre fondo
+   blanco) y el texto blanco quedaba invisible. */
+.topnav .nav-link {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -172,8 +176,30 @@ a { color: var(--red); }
   white-space: nowrap;
   opacity: .9;
 }
-.nav-link:hover { background: rgba(255, 255, 255, .16); opacity: 1; }
-.nav-link.active { background: rgba(255, 255, 255, .22); opacity: 1; }
+.topnav .nav-link:hover { background: rgba(255, 255, 255, .16); opacity: 1; }
+.topnav .nav-link.active { background: rgba(255, 255, 255, .22); opacity: 1; }
+
+/* Switch tipo pildora (Tiendas / Oficina) usado en Preguntas y Respuestas,
+   sobre fondo claro -- necesita sus propios colores, no los del topnav. */
+.ambito-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  margin-bottom: var(--sp-5);
+}
+.ambito-toggle .nav-link {
+  padding: 8px 18px;
+  border-radius: 999px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.ambito-toggle .nav-link:hover { color: var(--red); }
+.ambito-toggle .nav-link.active { background: var(--red); color: #fff; }
 
 .nav-account { display: flex; align-items: center; gap: var(--sp-3); }
 .usuario-actual {

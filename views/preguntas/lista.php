@@ -3,7 +3,7 @@
   <div><p class="eyebrow">Configuración</p><h1>Preguntas</h1></div>
 </div>
 
-<nav class="nav nav-pills mb-4" aria-label="Tipo de encuesta">
+<nav class="ambito-toggle" aria-label="Tipo de encuesta">
   <a class="nav-link <?= $ambito === 'tiendas' ? 'active' : '' ?>" href="<?= BASE_URL ?>/preguntas?ambito=tiendas">Tiendas</a>
   <a class="nav-link <?= $ambito === 'oficina' ? 'active' : '' ?>" href="<?= BASE_URL ?>/preguntas?ambito=oficina">Oficina</a>
 </nav>
