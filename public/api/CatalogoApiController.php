@@ -212,4 +212,17 @@ class CatalogoApiController
         $filas = $pdo->query('SELECT id, nombre FROM rol ORDER BY nombre')->fetchAll();
         echo json_encode($filas);
     }
+
+    // GET /api/administraciones
+    // Catalogo plano y global de areas administrativas para la encuesta
+    // de oficina (el equivalente a /api/tiendas en la encuesta de tienda,
+    // pero sin cascada: no dependen de negocio/region/plaza).
+    public function administraciones(): void
+    {
+        if (!ApiAuth::usuarioDesdeToken()) { $this->noAutorizado(); return; }
+        $pdo = Database::conexion();
+        $filas = $pdo->query('SELECT id, nombre FROM administracion WHERE activo = 1 ORDER BY nombre')->fetchAll();
+        foreach ($filas as &$f) { $f['id'] = (int) $f['id']; }
+        echo json_encode($filas);
+    }
 }

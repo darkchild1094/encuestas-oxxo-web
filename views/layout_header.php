@@ -46,6 +46,7 @@ $flashError = $_SESSION['_flash_error'] ?? null; unset($_SESSION['_flash_error']
         <?php endif; ?>
         <?php if (!empty($_SESSION['gestiona_usuarios'])): ?>
           <a class="nav-link<?= nav_activo('/usuarios') ?>" href="<?= BASE_URL ?>/usuarios"><i class="fa-solid fa-users" aria-hidden="true"></i> Usuarios</a>
+          <a class="nav-link<?= nav_activo('/administracion') ?>" href="<?= BASE_URL ?>/administracion"><i class="fa-solid fa-building" aria-hidden="true"></i> Areas</a>
         <?php endif; ?>
         <?php if ($rol === 'WEBMASTER'): ?>
           <a class="nav-link<?= nav_activo('/resumen') ?>" href="<?= BASE_URL ?>/resumen"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i> Resumen</a>

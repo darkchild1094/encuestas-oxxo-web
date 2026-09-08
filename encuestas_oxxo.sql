@@ -29,7 +29,8 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `cuestionario` (
   `id` int(10) UNSIGNED NOT NULL,
-  `plaza_id` int(10) UNSIGNED NOT NULL,
+  `plaza_id` int(10) UNSIGNED DEFAULT NULL,
+  `tipo` enum('tienda','oficina') NOT NULL DEFAULT 'tienda',
   `nombre` varchar(150) NOT NULL,
   `activo` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -50,7 +51,8 @@ INSERT INTO `cuestionario` (`id`, `plaza_id`, `nombre`, `activo`) VALUES
 CREATE TABLE `encuesta` (
   `id` char(36) NOT NULL,
   `usuario_id` int(10) UNSIGNED DEFAULT NULL,
-  `tienda_id` int(10) UNSIGNED NOT NULL,
+  `tienda_id` int(10) UNSIGNED DEFAULT NULL,
+  `administracion_id` int(10) UNSIGNED DEFAULT NULL,
   `cuestionario_id` int(10) UNSIGNED NOT NULL,
   `comentario` text DEFAULT NULL,
   `fecha_creacion_local` datetime NOT NULL,
@@ -202,6 +204,7 @@ CREATE TABLE `rol` (
   `gestiona_preguntas` tinyint(1) NOT NULL DEFAULT 0,
   `gestiona_usuarios` tinyint(1) NOT NULL DEFAULT 0,
   `es_encuestable` tinyint(1) NOT NULL DEFAULT 0,
+  `contesta_oficina` tinyint(1) NOT NULL DEFAULT 0,
   `ve_resultados_tiendas` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -209,10 +212,10 @@ CREATE TABLE `rol` (
 -- Volcado de datos para la tabla `rol`
 --
 
-INSERT INTO `rol` (`id`, `nombre`, `gestiona_preguntas`, `gestiona_usuarios`, `es_encuestable`, `ve_resultados_tiendas`) VALUES
-(1, 'ATI', 1, 0, 0, 1),
-(2, 'WEBMASTER', 1, 1, 1, 0),
-(3, 'PFS', 0, 0, 1, 0);
+INSERT INTO `rol` (`id`, `nombre`, `gestiona_preguntas`, `gestiona_usuarios`, `es_encuestable`, `contesta_oficina`, `ve_resultados_tiendas`) VALUES
+(1, 'ATI', 1, 0, 0, 1, 1),
+(2, 'WEBMASTER', 1, 1, 1, 1, 0),
+(3, 'PFS', 0, 0, 1, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -1456,6 +1459,35 @@ ALTER TABLE `token_acceso`
 ALTER TABLE `usuario`
   ADD CONSTRAINT `fk_usuario_plaza` FOREIGN KEY (`plaza_id`) REFERENCES `plaza` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_usuario_rol` FOREIGN KEY (`rol_id`) REFERENCES `rol` (`id`) ON UPDATE CASCADE;
+
+-- --------------------------------------------------------
+-- Encuesta de oficina: catalogo de areas administrativas + enlace
+-- desde `encuesta`. (Ver sql/migracion_administracion.sql y
+-- sql/migracion_encuesta_administracion.sql para instalaciones ya
+-- existentes.)
+-- --------------------------------------------------------
+
+CREATE TABLE `administracion` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(120) NOT NULL,
+  `activo` tinyint(1) NOT NULL DEFAULT 1,
+  `fecha_registro` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_administracion_nombre` (`nombre`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `administracion` (`nombre`) VALUES ('RH'), ('Mantenimiento'), ('Asesores');
+
+INSERT INTO `cuestionario` (`plaza_id`, `nombre`, `activo`, `tipo`) VALUES
+(NULL, 'Encuesta de oficina', 1, 'oficina');
+
+ALTER TABLE `encuesta`
+  ADD KEY `idx_encuesta_administracion` (`administracion_id`),
+  ADD CONSTRAINT `fk_encuesta_administracion` FOREIGN KEY (`administracion_id`) REFERENCES `administracion` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `chk_encuesta_destino` CHECK (
+        (`tienda_id` IS NOT NULL AND `administracion_id` IS NULL)
+     OR (`tienda_id` IS NULL AND `administracion_id` IS NOT NULL));
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

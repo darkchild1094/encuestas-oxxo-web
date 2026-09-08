@@ -18,11 +18,18 @@ class SyncApiController
             return;
         }
 
-        $plazaId = (int) ($_GET['plaza_id'] ?? 0);
         $pdo = Database::conexion();
+        $ambito = ($_GET['ambito'] ?? '') === 'oficina' ? 'oficina' : 'tienda';
 
-        $stmt = $pdo->prepare('SELECT id, nombre FROM cuestionario WHERE plaza_id = :p AND activo = 1 LIMIT 1');
-        $stmt->execute(['p' => $plazaId]);
+        if ($ambito === 'oficina') {
+            // Un unico cuestionario global de oficina, sin plaza.
+            $stmt = $pdo->prepare("SELECT id, nombre FROM cuestionario WHERE tipo = 'oficina' AND activo = 1 LIMIT 1");
+            $stmt->execute();
+        } else {
+            $plazaId = (int) ($_GET['plaza_id'] ?? 0);
+            $stmt = $pdo->prepare("SELECT id, nombre FROM cuestionario WHERE plaza_id = :p AND tipo = 'tienda' AND activo = 1 LIMIT 1");
+            $stmt->execute(['p' => $plazaId]);
+        }
         $cuestionario = $stmt->fetch();
 
         if (!$cuestionario) {
@@ -52,7 +59,7 @@ class SyncApiController
             echo json_encode(['error' => 'token invalido o vencido']);
             return;
         }
-        if (!$usuario['es_encuestable']) {
+        if (!$usuario['es_encuestable'] && !$usuario['contesta_oficina']) {
             http_response_code(403);
             echo json_encode(['error' => 'este rol no puede contestar encuestas']);
             return;
@@ -74,9 +81,9 @@ class SyncApiController
 
         $stmtEncuesta = $pdo->prepare('
             INSERT IGNORE INTO encuesta
-                (id, usuario_id, tienda_id, cuestionario_id, folio, comentario, fecha_creacion_local, sincronizado, fecha_sincronizacion)
+                (id, usuario_id, tienda_id, administracion_id, cuestionario_id, folio, comentario, fecha_creacion_local, sincronizado, fecha_sincronizacion)
             VALUES
-                (:id, :usuario_id, :tienda_id, :cuestionario_id, :folio, :comentario, :fecha_creacion_local, 1, NOW())
+                (:id, :usuario_id, :tienda_id, :administracion_id, :cuestionario_id, :folio, :comentario, :fecha_creacion_local, 1, NOW())
         ');
         $stmtRespuesta = $pdo->prepare('
             INSERT IGNORE INTO respuesta_detalle (id, encuesta_id, pregunta_id, calificacion)
@@ -94,12 +101,35 @@ class SyncApiController
         $fallidas = [];
 
         foreach ($encuestas as $e) {
+            // Una encuesta es de TIENDA o de OFICINA, nunca las dos ni
+            // ninguna. La de oficina trae administracion_id; la de tienda,
+            // tienda_id. Cada tipo tiene su propia bandera de permiso.
+            $adminId = isset($e['administracion_id']) && $e['administracion_id'] !== null && $e['administracion_id'] !== ''
+                ? (int) $e['administracion_id'] : null;
+            $tiendaId = isset($e['tienda_id']) && $e['tienda_id'] !== null && $e['tienda_id'] !== ''
+                ? (int) $e['tienda_id'] : null;
+            $esOficina = $adminId !== null;
+
+            if (($adminId === null) === ($tiendaId === null)) {
+                $fallidas[] = ['id' => $e['id'] ?? null, 'folio' => $e['folio'] ?? null, 'error' => 'indica exactamente uno de tienda_id / administracion_id'];
+                continue;
+            }
+            if ($esOficina && !$usuario['contesta_oficina']) {
+                $fallidas[] = ['id' => $e['id'], 'folio' => $e['folio'] ?? null, 'error' => 'este rol no puede contestar la encuesta de oficina'];
+                continue;
+            }
+            if (!$esOficina && !$usuario['es_encuestable']) {
+                $fallidas[] = ['id' => $e['id'], 'folio' => $e['folio'] ?? null, 'error' => 'este rol no puede contestar encuestas de tienda'];
+                continue;
+            }
+
             $pdo->beginTransaction();
             try {
                 $stmtEncuesta->execute([
                     'id' => $e['id'],
                     'usuario_id' => $usuario['id'],
-                    'tienda_id' => $e['tienda_id'],
+                    'tienda_id' => $esOficina ? null : $tiendaId,
+                    'administracion_id' => $esOficina ? $adminId : null,
                     'cuestionario_id' => $e['cuestionario_id'],
                     'folio' => trim($e['folio']),
                     'comentario' => $e['comentario'] ?? null,

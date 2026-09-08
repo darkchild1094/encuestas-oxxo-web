@@ -11,6 +11,41 @@ class PreguntaController
         Auth::requierePermiso('gestiona_preguntas');
         $pdo = Database::conexion();
 
+        $ambito = ($_GET['ambito'] ?? 'tiendas') === 'oficina' ? 'oficina' : 'tiendas';
+
+        $plazas = [];
+        $plazaId = 0;
+        $cuestionario = null;
+        $preguntas = [];
+
+        if ($ambito === 'oficina') {
+            // Un unico cuestionario global de oficina, sin plaza. Se
+            // auto-provisiona igual que el de tienda, pero sin la
+            // pregunta fija de TI (esa es especifica de tienda).
+            $cuestionario = $pdo->query("SELECT * FROM cuestionario WHERE tipo = 'oficina' LIMIT 1")->fetch();
+            if (!$cuestionario) {
+                $pdo->exec("
+                    INSERT INTO cuestionario (plaza_id, nombre, tipo)
+                    SELECT NULL, 'Encuesta de oficina', 'oficina'
+                    WHERE NOT EXISTS (SELECT 1 FROM cuestionario WHERE tipo = 'oficina')
+                ");
+                $cuestionario = $pdo->query("SELECT * FROM cuestionario WHERE tipo = 'oficina' LIMIT 1")->fetch();
+            }
+
+            if ($cuestionario) {
+                $stmt = $pdo->prepare('
+                    SELECT * FROM pregunta
+                    WHERE cuestionario_id = :c AND activo = 1
+                    ORDER BY es_fija ASC, orden ASC
+                ');
+                $stmt->execute(['c' => $cuestionario['id']]);
+                $preguntas = $stmt->fetchAll();
+            }
+
+            require __DIR__ . '/../views/preguntas/lista.php';
+            return;
+        }
+
         $plazaId = (int) ($_GET['plaza_id'] ?? 0);
 
         $plazas = $pdo->query('
@@ -25,11 +60,8 @@ class PreguntaController
             $plazaId = $plazas[0]['id'];
         }
 
-        $cuestionario = null;
-        $preguntas = [];
-
         if ($plazaId) {
-            $stmt = $pdo->prepare('SELECT * FROM cuestionario WHERE plaza_id = :p LIMIT 1');
+            $stmt = $pdo->prepare("SELECT * FROM cuestionario WHERE plaza_id = :p AND tipo = 'tienda' LIMIT 1");
             $stmt->execute(['p' => $plazaId]);
             $cuestionario = $stmt->fetch();
 
@@ -37,9 +69,9 @@ class PreguntaController
             // vacio automaticamente para que el ATI/webmaster puedan
             // empezar a agregar preguntas sin pasos extra.
             if (!$cuestionario) {
-                $stmt = $pdo->prepare("INSERT INTO cuestionario (plaza_id, nombre) VALUES (:p, 'Encuesta de satisfaccion')");
+                $stmt = $pdo->prepare("INSERT INTO cuestionario (plaza_id, nombre, tipo) VALUES (:p, 'Encuesta de satisfaccion', 'tienda')");
                 $stmt->execute(['p' => $plazaId]);
-                $stmt = $pdo->prepare('SELECT * FROM cuestionario WHERE plaza_id = :p LIMIT 1');
+                $stmt = $pdo->prepare("SELECT * FROM cuestionario WHERE plaza_id = :p AND tipo = 'tienda' LIMIT 1");
                 $stmt->execute(['p' => $plazaId]);
                 $cuestionario = $stmt->fetch();
 
@@ -88,8 +120,18 @@ class PreguntaController
             'o' => $orden,
         ]);
 
-        header('Location: ' . BASE_URL . '/preguntas?plaza_id=' . (int) ($_POST['plaza_id'] ?? 0));
+        header('Location: ' . BASE_URL . '/preguntas?' . $this->qsAmbito());
         exit;
+    }
+
+    // Reconstruye el query string para volver al mismo listado (tienda de
+    // una plaza, u oficina) despues de un crear/editar/eliminar.
+    private function qsAmbito(): string
+    {
+        if (($_POST['ambito'] ?? '') === 'oficina') {
+            return 'ambito=oficina';
+        }
+        return 'plaza_id=' . (int) ($_POST['plaza_id'] ?? 0);
     }
 
     public function editar(): void
@@ -103,7 +145,7 @@ class PreguntaController
         $stmt = $pdo->prepare('UPDATE pregunta SET texto = :t, orden = :o WHERE id = :id');
         $stmt->execute(['t' => $texto, 'o' => $orden, 'id' => $id]);
 
-        header('Location: ' . BASE_URL . '/preguntas?plaza_id=' . (int) ($_POST['plaza_id'] ?? 0));
+        header('Location: ' . BASE_URL . '/preguntas?' . $this->qsAmbito());
         exit;
     }
 
@@ -119,7 +161,7 @@ class PreguntaController
         $stmt = $pdo->prepare('SELECT es_fija FROM pregunta WHERE id = :id');
         $stmt->execute(['id' => $id]);
         if ((bool) $stmt->fetchColumn()) {
-            header('Location: ' . BASE_URL . '/preguntas?plaza_id=' . (int) ($_POST['plaza_id'] ?? 0));
+            header('Location: ' . BASE_URL . '/preguntas?' . $this->qsAmbito());
             exit;
         }
 
@@ -130,7 +172,7 @@ class PreguntaController
         $stmt = $pdo->prepare('UPDATE pregunta SET activo = 0 WHERE id = :id');
         $stmt->execute(['id' => $id]);
 
-        header('Location: ' . BASE_URL . '/preguntas?plaza_id=' . (int) ($_POST['plaza_id'] ?? 0));
+        header('Location: ' . BASE_URL . '/preguntas?' . $this->qsAmbito());
         exit;
     }
 }

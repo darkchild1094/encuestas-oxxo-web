@@ -75,15 +75,74 @@ class RespuestaController
         ];
     }
 
+    private function ambitoDesdeGet(): string
+    {
+        return ($_GET['ambito'] ?? 'tiendas') === 'oficina' ? 'oficina' : 'tiendas';
+    }
+
+    private function filtrosOficinaDesdeGet(): array
+    {
+        return [
+            'administracion_id' => $_GET['administracion_id'] ?? null,
+            'desde' => $_GET['desde'] ?? null,
+            'hasta' => $_GET['hasta'] ?? null,
+        ];
+    }
+
+    // Detalle crudo de la encuesta de OFICINA (una fila por respuesta).
+    // No hay tienda/plaza/region ni alcance por plaza: las areas son
+    // globales, asi que cualquier ATI con ve_resultados_tiendas ve todo.
+    private function queryOficina(array $filtros): array
+    {
+        $sql = '
+            SELECT
+                e.id AS encuesta_id, e.folio, e.fecha_creacion_local, e.comentario,
+                a.id AS administracion_id, a.nombre AS administracion,
+                preg.texto AS pregunta, rd.calificacion
+            FROM encuesta e
+            JOIN administracion a ON a.id = e.administracion_id
+            JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
+            JOIN pregunta preg ON preg.id = rd.pregunta_id
+            WHERE e.administracion_id IS NOT NULL
+        ';
+        $params = [];
+        if (!empty($filtros['administracion_id'])) {
+            $sql .= ' AND e.administracion_id = :administracion_id';
+            $params['administracion_id'] = $filtros['administracion_id'];
+        }
+        if (!empty($filtros['desde'])) {
+            $sql .= ' AND e.fecha_creacion_local >= :desde';
+            $params['desde'] = $filtros['desde'] . ' 00:00:00';
+        }
+        if (!empty($filtros['hasta'])) {
+            $sql .= ' AND e.fecha_creacion_local <= :hasta';
+            $params['hasta'] = $filtros['hasta'] . ' 23:59:59';
+        }
+        $sql .= ' ORDER BY e.fecha_creacion_local DESC, preg.orden, preg.id';
+
+        $stmt = Database::conexion()->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
     public function index(): void
     {
         if (($_SESSION['rol'] ?? '') !== 'ATI') {
             http_response_code(403);
-            echo 'Solo el rol ATI puede consultar las respuestas de tiendas.';
+            echo 'Solo el rol ATI puede consultar las respuestas.';
             exit;
         }
         Auth::requierePermiso('ve_resultados_tiendas');
         $pdo = Database::conexion();
+
+        $ambito = $this->ambitoDesdeGet();
+
+        if ($ambito === 'oficina') {
+            $areas = $pdo->query('SELECT id, nombre FROM administracion ORDER BY nombre')->fetchAll();
+            $filas = $this->queryOficina($this->filtrosOficinaDesdeGet());
+            require __DIR__ . '/../views/respuestas/lista.php';
+            return;
+        }
 
         $esAtiGlobal = (int) $_SESSION['usuario_id'] === 128;
 
@@ -135,6 +194,19 @@ class RespuestaController
         }
         Auth::requierePermiso('ve_resultados_tiendas');
 
+        if ($this->ambitoDesdeGet() === 'oficina') {
+            require_once __DIR__ . '/../src/ReporteRespuestasOficina.php';
+            $filtros = $this->filtrosOficinaDesdeGet();
+            $reporte = new ReporteRespuestasOficina(Database::conexion(), $filtros);
+            $xlsx = $reporte->generar($this->queryOficina($filtros));
+
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="reporte_oficina_' . date('Y-m-d_His') . '.xlsx"');
+            header('Content-Length: ' . strlen($xlsx));
+            echo $xlsx;
+            exit;
+        }
+
         require_once __DIR__ . '/../src/ReporteRespuestas.php';
 
         $filtrosExportacion = $this->filtrosDesdeGet();
@@ -168,6 +240,27 @@ class RespuestaController
             exit;
         }
         Auth::requierePermiso('ve_resultados_tiendas');
+
+        if ($this->ambitoDesdeGet() === 'oficina') {
+            $filas = $this->queryOficina($this->filtrosOficinaDesdeGet());
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="respuestas_oficina_' . date('Y-m-d_His') . '.csv"');
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Folio', 'Fecha', 'Area', 'Pregunta', 'Calificacion', 'Comentario']);
+            foreach ($filas as $f) {
+                fputcsv($out, [
+                    $f['folio'] ?? '',
+                    $f['fecha_creacion_local'] ?? '',
+                    $f['administracion'] ?? '',
+                    $f['pregunta'] ?? '',
+                    (int) ($f['calificacion'] ?? 0),
+                    $f['comentario'] ?? '',
+                ]);
+            }
+            fclose($out);
+            exit;
+        }
 
         $filtros = $this->filtrosDesdeGet();
         unset($filtros['ati_id'], $filtros['tienda_id']);

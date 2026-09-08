@@ -3,7 +3,14 @@
   <div><p class="eyebrow">Configuración</p><h1>Preguntas</h1></div>
 </div>
 
+<nav class="nav nav-pills mb-4" aria-label="Tipo de encuesta">
+  <a class="nav-link <?= $ambito === 'tiendas' ? 'active' : '' ?>" href="<?= BASE_URL ?>/preguntas?ambito=tiendas">Tiendas</a>
+  <a class="nav-link <?= $ambito === 'oficina' ? 'active' : '' ?>" href="<?= BASE_URL ?>/preguntas?ambito=oficina">Oficina</a>
+</nav>
+
+<?php if ($ambito === 'tiendas'): ?>
 <form method="GET" action="<?= BASE_URL ?>/preguntas" class="card border-0 shadow-sm p-3 mb-4">
+  <input type="hidden" name="ambito" value="tiendas">
   <div class="row align-items-end g-3">
     <div class="col-12 col-md-8 col-lg-6">
       <label class="form-label" for="plaza_id">Plaza</label>
@@ -17,13 +24,16 @@
     </div>
   </div>
 </form>
+<?php endif; ?>
 
 <?php if ($cuestionario): ?>
-<div class="section-intro"><h2>Nueva pregunta &mdash; <?= htmlspecialchars($cuestionario['nombre']) ?></h2></div>
+<?php $tituloListado = $ambito === 'oficina' ? 'Oficina' : htmlspecialchars($cuestionario['nombre']); ?>
+<div class="section-intro"><h2>Nueva pregunta &mdash; <?= $tituloListado ?></h2></div>
 <form method="POST" action="<?= BASE_URL ?>/preguntas/crear" class="card border-0 shadow-sm p-3 mb-4">
   <?= Csrf::campo() ?>
   <input type="hidden" name="cuestionario_id" value="<?= $cuestionario['id'] ?>">
   <input type="hidden" name="plaza_id" value="<?= $plazaId ?>">
+  <input type="hidden" name="ambito" value="<?= e($ambito) ?>">
   <div class="row align-items-end g-3">
     <div class="col-12 col-md-7"><label class="form-label" for="texto">Texto</label><input class="form-control" id="texto" type="text" name="texto" required maxlength="255"></div>
     <div class="col-12 col-md-2"><label class="form-label" for="orden">Orden</label><input class="form-control" id="orden" type="number" name="orden" value="<?= count($preguntas) + 1 ?>"></div>
@@ -40,6 +50,7 @@
         <?= Csrf::campo() ?>
         <input type="hidden" name="id" value="<?= $p['id'] ?>">
         <input type="hidden" name="plaza_id" value="<?= $plazaId ?>">
+        <input type="hidden" name="ambito" value="<?= e($ambito) ?>">
         <input class="form-control form-control-sm d-inline-block w-auto" type="number" name="orden" value="<?= $p['orden'] ?>" <?= $p['es_fija'] ? 'disabled' : '' ?>>
         <input class="form-control form-control-sm d-inline-block question-input" type="text" name="texto" value="<?= htmlspecialchars($p['texto']) ?>">
         <?php if ($p['es_fija']): ?>
@@ -52,6 +63,7 @@
         <?= Csrf::campo() ?>
         <input type="hidden" name="id" value="<?= $p['id'] ?>">
         <input type="hidden" name="plaza_id" value="<?= $plazaId ?>">
+        <input type="hidden" name="ambito" value="<?= e($ambito) ?>">
         <button type="submit" class="btn btn-sm btn-outline-danger">Quitar</button>
       </form>
       <?php endif; ?>
@@ -59,10 +71,12 @@
   </tr>
   <?php endforeach; ?>
   <?php if (!$preguntas): ?>
-  <tr><td colspan="3">Todavia no hay preguntas para esta plaza.</td></tr>
+  <tr><td colspan="3">Todavia no hay preguntas para <?= $ambito === 'oficina' ? 'la encuesta de oficina' : 'esta plaza' ?>.</td></tr>
   <?php endif; ?>
 </table></div>
 <p class="ok alert alert-info mt-3">El comentario opcional siempre va al final, despues de todas las preguntas -- no es parte de este listado.</p>
+<?php elseif ($ambito === 'oficina'): ?>
+<p class="alert alert-warning">No se pudo preparar la encuesta de oficina. Corre la migración <code>migracion_cuestionario_oficina.sql</code>.</p>
 <?php else: ?>
 <p class="alert alert-warning">No hay plazas registradas.</p>
 <?php endif; ?>

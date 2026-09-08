@@ -46,7 +46,7 @@ class ApiAuth
         $stmt = $pdo->prepare('
             SELECT u.id, u.plaza_id, r.nombre AS rol_nombre, r.gestiona_preguntas,
                    (r.gestiona_usuarios OR u.id = 128) AS gestiona_usuarios,
-                   r.es_encuestable, r.ve_resultados_tiendas
+                   r.es_encuestable, r.ve_resultados_tiendas, r.contesta_oficina
             FROM token_acceso ta
             JOIN usuario u ON u.id = ta.usuario_id
             JOIN rol r ON r.id = u.rol_id
@@ -65,6 +65,7 @@ class ApiAuth
         $fila['gestiona_usuarios'] = (bool) $fila['gestiona_usuarios'];
         $fila['es_encuestable'] = (bool) $fila['es_encuestable'];
         $fila['ve_resultados_tiendas'] = (bool) $fila['ve_resultados_tiendas'];
+        $fila['contesta_oficina'] = (bool) $fila['contesta_oficina'];
         return $fila;
     }
 }

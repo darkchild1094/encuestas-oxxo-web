@@ -21,12 +21,14 @@ Auth::iniciar();
 
 require_once __DIR__ . '/../controllers/AuthController.php';
 require_once __DIR__ . '/../controllers/UsuarioController.php';
+require_once __DIR__ . '/../controllers/AdministracionController.php';
 require_once __DIR__ . '/../controllers/PreguntaController.php';
 require_once __DIR__ . '/../controllers/RespuestaController.php';
 require_once __DIR__ . '/../controllers/DashboardController.php';
 require_once __DIR__ . '/../controllers/ResumenController.php';
 require_once __DIR__ . '/../controllers/CuentaController.php';
 require_once __DIR__ . '/../controllers/UpdateController.php';
+require_once __DIR__ . '/../controllers/EncuestaPublicaController.php';
 
 // En Alwaysdata sin .htaccess, REQUEST_URI incluye la ruta completa
 $ruta = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -51,6 +53,11 @@ $metodo = $_SERVER['REQUEST_METHOD'];
 $rutas = [
     'GET /login' => [AuthController::class, 'mostrarLogin'],
     'POST /login' => [AuthController::class, 'procesarLogin'],
+
+    // Encuesta de oficina PUBLICA (sin login)
+    'GET /encuesta-oficina' => [EncuestaPublicaController::class, 'mostrar'],
+    'POST /encuesta-oficina/enviar' => [EncuestaPublicaController::class, 'enviar'],
+
     'GET /logout' => [AuthController::class, 'logout'],
     'POST /logout' => [AuthController::class, 'logout'],
     'GET /cambiar-password' => [AuthController::class, 'mostrarCambiarPassword'],
@@ -74,6 +81,14 @@ $rutas = [
     'POST /usuarios/cambiar-plaza' => [UsuarioController::class, 'cambiarPlaza'],
     'POST /usuarios/restablecer-password' => [UsuarioController::class, 'restablecerPassword'],
     'POST /usuarios/eliminar' => [UsuarioController::class, 'eliminar'],
+
+    'GET /administracion' => [AdministracionController::class, 'index'],
+    'POST /administracion/crear' => [AdministracionController::class, 'crear'],
+    'POST /administracion/editar' => [AdministracionController::class, 'editar'],
+    'POST /administracion/activar' => [AdministracionController::class, 'activar'],
+    'POST /administracion/desactivar' => [AdministracionController::class, 'desactivar'],
+    'POST /administracion/eliminar' => [AdministracionController::class, 'eliminar'],
+
     'GET /preguntas' => [PreguntaController::class, 'index'],
     'POST /preguntas/crear' => [PreguntaController::class, 'crear'],
     'POST /preguntas/editar' => [PreguntaController::class, 'editar'],
