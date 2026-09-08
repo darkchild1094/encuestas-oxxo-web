@@ -1483,7 +1483,9 @@ INSERT INTO `cuestionario` (`plaza_id`, `nombre`, `activo`, `tipo`) VALUES
 
 ALTER TABLE `encuesta`
   ADD KEY `idx_encuesta_administracion` (`administracion_id`),
-  ADD CONSTRAINT `fk_encuesta_administracion` FOREIGN KEY (`administracion_id`) REFERENCES `administracion` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_encuesta_administracion` FOREIGN KEY (`administracion_id`) REFERENCES `administracion` (`id`) ON UPDATE CASCADE;
+
+ALTER TABLE `encuesta`
   ADD CONSTRAINT `chk_encuesta_destino` CHECK (
         (`tienda_id` IS NOT NULL AND `administracion_id` IS NULL)
      OR (`tienda_id` IS NULL AND `administracion_id` IS NOT NULL));
