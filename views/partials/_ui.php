@@ -15,6 +15,33 @@ if (!function_exists('e')) {
     }
 }
 
+if (!function_exists('url_absoluta')) {
+    /** URL completa (esquema + host + BASE_URL + ruta) para compartir fuera del panel. */
+    function url_absoluta(string $ruta): string
+    {
+        $https = !empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off';
+        $esquema = $https ? 'https://' : 'http://';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        return $esquema . $host . BASE_URL . $ruta;
+    }
+}
+
+if (!function_exists('enlace_copiable')) {
+    /**
+     * Campo de solo lectura + boton "Copiar enlace" para compartir una URL
+     * (ej. el cuestionario web publico). El boton usa el handler delegado
+     * que registra layout_header.php (busca .js-copiar-enlace).
+     */
+    function enlace_copiable(string $url, string $etiqueta = 'Copiar enlace'): string
+    {
+        return '<div class="copy-link d-flex flex-wrap gap-2 align-items-center">'
+            . '<input type="text" class="form-control form-control-sm flex-grow-1" style="min-width:16rem;max-width:32rem" readonly value="' . e($url) . '" '
+            . 'onclick="this.select()" aria-label="Enlace para compartir">'
+            . '<button type="button" class="btn btn-sm btn-outline-primary js-copiar-enlace">' . e($etiqueta) . '</button>'
+            . '</div>';
+    }
+}
+
 if (!function_exists('nav_activo')) {
     /** Devuelve ' active' + aria si $ruta es la pagina actual. */
     function nav_activo(string $ruta): string

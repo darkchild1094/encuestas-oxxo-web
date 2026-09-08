@@ -8,6 +8,13 @@
   <a class="nav-link <?= $ambito === 'oficina' ? 'active' : '' ?>" href="<?= BASE_URL ?>/preguntas?ambito=oficina">Oficina</a>
 </nav>
 
+<?php if ($ambito === 'oficina'): ?>
+<div class="card border-0 shadow-sm p-3 mb-4">
+  <p class="mb-2">Enlace del cuestionario web publico (sin login) para contestar la encuesta de oficina en remoto:</p>
+  <?= enlace_copiable(url_absoluta('/encuesta-oficina')) ?>
+</div>
+<?php endif; ?>
+
 <?php if ($ambito === 'tiendas'): ?>
 <form method="GET" action="<?= BASE_URL ?>/preguntas" class="card border-0 shadow-sm p-3 mb-4">
   <input type="hidden" name="ambito" value="tiendas">

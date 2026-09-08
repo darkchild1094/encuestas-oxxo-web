@@ -13,9 +13,13 @@
   <?php unset($_SESSION['error_admin']); ?>
 <?php endif; ?>
 
-<p class="alert alert-info">Estas areas (RH, Mantenimiento, Asesores...) son el destino de la
-<strong>encuesta de oficina</strong>. Las preguntas de esa encuesta se editan en
-<a href="<?= BASE_URL ?>/preguntas?ambito=oficina">Preguntas &rarr; Oficina</a>.</p>
+<div class="card border-0 shadow-sm p-3 mb-4">
+  <p class="mb-2">Estas areas (RH, Mantenimiento, Asesores...) son el destino de la
+  <strong>encuesta de oficina</strong>. Las preguntas de esa encuesta se editan en
+  <a href="<?= BASE_URL ?>/preguntas?ambito=oficina">Preguntas &rarr; Oficina</a>.</p>
+  <p class="mb-2">Enlace del cuestionario web publico (sin login) para contestarla en remoto:</p>
+  <?= enlace_copiable(url_absoluta('/encuesta-oficina')) ?>
+</div>
 
 <details class="panel disclosure" open>
   <summary class="panel-title">Nueva area</summary>

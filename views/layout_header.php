@@ -72,3 +72,31 @@ $flashError = $_SESSION['_flash_error'] ?? null; unset($_SESSION['_flash_error']
 <main class="page-shell" id="contenido">
 <?php if ($flashOk): ?><div class="flash flash-ok" role="status"><?= e($flashOk) ?></div><?php endif; ?>
 <?php if ($flashError): ?><div class="flash flash-error" role="alert"><?= e($flashError) ?></div><?php endif; ?>
+<script>
+// Handler delegado para cualquier boton .js-copiar-enlace: copia el
+// input de solo lectura que lo acompana dentro de .copy-link. Un solo
+// listener en toda la pagina, sirve para cuantos enlaces copiables haya.
+document.addEventListener('click', function (ev) {
+  var boton = ev.target.closest('.js-copiar-enlace');
+  if (!boton) { return; }
+  var campo = boton.closest('.copy-link').querySelector('input');
+  if (!campo) { return; }
+  campo.select();
+  campo.setSelectionRange(0, 99999);
+  var avisar = function () {
+    var textoOriginal = boton.textContent;
+    boton.textContent = 'Copiado';
+    boton.disabled = true;
+    setTimeout(function () { boton.textContent = textoOriginal; boton.disabled = false; }, 1500);
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(campo.value).then(avisar, function () {
+      document.execCommand('copy');
+      avisar();
+    });
+  } else {
+    document.execCommand('copy');
+    avisar();
+  }
+});
+</script>
