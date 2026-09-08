@@ -225,4 +225,45 @@ class CatalogoApiController
         foreach ($filas as &$f) { $f['id'] = (int) $f['id']; }
         echo json_encode($filas);
     }
+
+    // POST /api/administraciones  Body: { nombre }
+    // El ATI (y el webmaster) puede dar de alta areas directo desde la
+    // app -- mismo permiso "contesta_oficina" que habilita responder la
+    // encuesta de oficina, no gestiona_usuarios (eso seguiria limitando
+    // el CRUD completo del panel web a webmaster).
+    public function crearAdministracion(): void
+    {
+        $usuario = ApiAuth::usuarioDesdeToken();
+        if (!$usuario) { $this->noAutorizado(); return; }
+        if (!$usuario['contesta_oficina']) {
+            http_response_code(403);
+            echo json_encode(['error' => 'tu rol no puede dar de alta areas administrativas']);
+            return;
+        }
+
+        $datos = json_decode(file_get_contents('php://input'), true) ?? [];
+        $nombre = trim((string) ($datos['nombre'] ?? ''));
+
+        if ($nombre === '' || mb_strlen($nombre) > 120) {
+            http_response_code(422);
+            echo json_encode(['error' => 'nombre es requerido (maximo 120 caracteres)']);
+            return;
+        }
+
+        $pdo = Database::conexion();
+        try {
+            $stmt = $pdo->prepare('INSERT INTO administracion (nombre) VALUES (:n)');
+            $stmt->execute(['n' => $nombre]);
+            $id = (int) $pdo->lastInsertId();
+        } catch (PDOException $e) {
+            if ($e->getCode() === '23000') {
+                http_response_code(409);
+                echo json_encode(['error' => 'ya existe un area con ese nombre']);
+                return;
+            }
+            throw $e;
+        }
+
+        echo json_encode(['id' => $id, 'nombre' => $nombre]);
+    }
 }
