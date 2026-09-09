@@ -342,7 +342,11 @@ class EstadisticasApiController
             'conteos' => array_map('intval', $conteos),
             'tokens_activos' => $tokensActivos,
             'ultimas_encuestas' => $ultimasEncuestas,
-            'version_app' => $versionApp,
+            // Forzado a objeto: un array PHP vacio ([]) se codifica como
+            // "[]" en JSON, no "{}", y eso truena el parseo en la app
+            // (espera un objeto). Con datos, $versionApp ya es un array
+            // asociativo (claves string) y json_encode lo hace objeto solo.
+            'version_app' => (object) $versionApp,
         ]);
     }
 }
