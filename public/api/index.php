@@ -91,6 +91,8 @@ $rutas = [
     'GET /api/estadisticas/plaza/atis' => [EstadisticasApiController::class, 'estadisticasPlazaAtis'],
     'GET /api/estadisticas/plaza/tiendas' => [EstadisticasApiController::class, 'estadisticasPlazaTiendas'],
     'GET /api/estadisticas/pfs/desempeno' => [EstadisticasApiController::class, 'estadisticasPfsIndividual'],
+    'GET /api/estadisticas/oficina' => [EstadisticasApiController::class, 'estadisticasOficina'],
+    'GET /api/estadisticas/resumen' => [EstadisticasApiController::class, 'resumen'],
 
     // Handshaking y sincronización de encuestas
     'POST /api/encuestas/sync/init-handshake' => [EncuestaSyncApiController::class, 'iniciarHandshake'],

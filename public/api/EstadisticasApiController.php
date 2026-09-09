@@ -26,6 +26,21 @@ class EstadisticasApiController
         return true;
     }
 
+    private function requiereWebmaster(): bool
+    {
+        $usuario = ApiAuth::usuarioDesdeToken();
+        if (!$usuario) {
+            $this->noAutorizado();
+            return false;
+        }
+        if ($usuario['rol_nombre'] !== 'WEBMASTER') {
+            http_response_code(403);
+            echo json_encode(['error' => 'solo el rol WEBMASTER puede consultar este resumen']);
+            return false;
+        }
+        return true;
+    }
+
     private function promediosDesdeSql($sql, $params): array
     {
         $pdo = Database::conexion();
@@ -230,5 +245,104 @@ class EstadisticasApiController
         $sql .= " GROUP BY u.id ORDER BY promedio DESC";
 
         echo json_encode($this->promediosDesdeSql($sql, $params));
+    }
+
+    // GET /api/estadisticas/oficina
+    // Promedio por area administrativa (encuesta de oficina). Sin
+    // alcance de plaza -- las areas son globales, igual que en el
+    // reporte Excel del panel web.
+    public function estadisticasOficina(): void
+    {
+        if (!$this->requiereAti()) { return; }
+
+        $sql = "
+            SELECT
+                a.id as pregunta_id,
+                a.nombre as pregunta_texto,
+                AVG(rd.calificacion) as promedio,
+                COUNT(DISTINCT e.id) as total_encuestas
+            FROM administracion a
+            JOIN encuesta e ON e.administracion_id = a.id
+            JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
+            WHERE 1 = 1
+        ";
+
+        $params = [];
+        $this->agregarRangoFecha($sql, $params);
+
+        $sql .= " GROUP BY a.id ORDER BY promedio DESC";
+
+        echo json_encode($this->promediosDesdeSql($sql, $params));
+    }
+
+    // GET /api/estadisticas/resumen
+    // "Resumen del sistema" para WEBMASTER -- misma info que
+    // ResumenController.php del panel web (usuarios por rol, catalogo,
+    // actividad reciente, version publicada), en JSON para el dashboard
+    // movil.
+    public function resumen(): void
+    {
+        if (!$this->requiereWebmaster()) { return; }
+
+        $pdo = Database::conexion();
+
+        $usuariosPorRol = $pdo->query('
+            SELECT r.nombre AS rol, COUNT(u.id) AS total
+            FROM rol r
+            LEFT JOIN usuario u ON u.rol_id = r.id
+            GROUP BY r.id
+            ORDER BY total DESC, r.nombre
+        ')->fetchAll();
+
+        $conteos = $pdo->query("
+            SELECT
+              (SELECT COUNT(*) FROM usuario) AS usuarios,
+              (SELECT COUNT(*) FROM tienda) AS tiendas,
+              (SELECT COUNT(*) FROM plaza) AS plazas,
+              (SELECT COUNT(*) FROM administracion) AS areas,
+              (SELECT COUNT(*) FROM encuesta) AS encuestas,
+              (SELECT COUNT(*) FROM encuesta WHERE tienda_id IS NOT NULL) AS encuestas_tienda,
+              (SELECT COUNT(*) FROM encuesta WHERE administracion_id IS NOT NULL) AS encuestas_oficina,
+              (SELECT COUNT(*) FROM encuesta WHERE fecha_creacion_local >= (CURRENT_DATE - INTERVAL 7 DAY)) AS encuestas_7d,
+              (SELECT COUNT(*) FROM encuesta WHERE fecha_creacion_local >= (CURRENT_DATE - INTERVAL 30 DAY)) AS encuestas_30d,
+              (SELECT COUNT(*) FROM usuario WHERE debe_cambiar_password = 1) AS pendientes_password
+        ")->fetch();
+
+        $tokensActivos = null;
+        try {
+            $tokensActivos = (int) $pdo->query(
+                'SELECT COUNT(*) FROM token_acceso WHERE fecha_expiracion > NOW()'
+            )->fetchColumn();
+        } catch (Throwable $e) {
+            // tabla ausente o sin permisos: se manda null (n/d)
+        }
+
+        $ultimasEncuestas = $pdo->query("
+            SELECT e.fecha_creacion_local AS fecha, 'tienda' AS tipo,
+                   CONCAT(t.nombre, ' (', p.nombre, ')') AS lugar
+            FROM encuesta e
+            JOIN tienda t ON t.id = e.tienda_id
+            JOIN plaza p ON p.id = t.plaza_id
+            UNION ALL
+            SELECT e.fecha_creacion_local AS fecha, 'oficina' AS tipo, a.nombre AS lugar
+            FROM encuesta e
+            JOIN administracion a ON a.id = e.administracion_id
+            ORDER BY fecha DESC
+            LIMIT 8
+        ")->fetchAll();
+
+        $versionApp = [];
+        $vf = __DIR__ . '/../../config/version.json';
+        if (is_file($vf)) {
+            $versionApp = json_decode((string) file_get_contents($vf), true) ?: [];
+        }
+
+        echo json_encode([
+            'usuarios_por_rol' => $usuariosPorRol,
+            'conteos' => array_map('intval', $conteos),
+            'tokens_activos' => $tokensActivos,
+            'ultimas_encuestas' => $ultimasEncuestas,
+            'version_app' => $versionApp,
+        ]);
     }
 }
