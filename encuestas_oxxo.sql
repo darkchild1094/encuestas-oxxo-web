@@ -213,7 +213,7 @@ CREATE TABLE `rol` (
 --
 
 INSERT INTO `rol` (`id`, `nombre`, `gestiona_preguntas`, `gestiona_usuarios`, `es_encuestable`, `contesta_oficina`, `ve_resultados_tiendas`) VALUES
-(1, 'ATI', 1, 0, 1, 1, 1),
+(1, 'ATI', 1, 0, 0, 1, 1),
 (2, 'WEBMASTER', 1, 1, 1, 1, 0),
 (3, 'PFS', 0, 0, 1, 0, 0);
 
