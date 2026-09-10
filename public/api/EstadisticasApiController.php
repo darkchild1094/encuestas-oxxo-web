@@ -247,30 +247,61 @@ class EstadisticasApiController
         echo json_encode($this->promediosDesdeSql($sql, $params));
     }
 
-    // GET /api/estadisticas/oficina
-    // Promedio por area administrativa (encuesta de oficina). Sin
-    // alcance de plaza -- las areas son globales, igual que en el
-    // reporte Excel del panel web.
+    // GET /api/estadisticas/oficina?por=area|ati|plaza
+    // Promedio de la encuesta de oficina agrupado por area administrativa
+    // (default), por ATI que la contesto, o por la plaza de ese ATI.
+    // Global -- las areas de oficina no tienen alcance de plaza.
     public function estadisticasOficina(): void
     {
         if (!$this->requiereAti()) { return; }
 
-        $sql = "
-            SELECT
-                a.id as pregunta_id,
-                a.nombre as pregunta_texto,
-                AVG(rd.calificacion) as promedio,
-                COUNT(DISTINCT e.id) as total_encuestas
-            FROM administracion a
-            JOIN encuesta e ON e.administracion_id = a.id
-            JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
-            WHERE 1 = 1
-        ";
+        $por = $_GET['por'] ?? 'area';
+
+        if ($por === 'ati') {
+            $sql = "
+                SELECT
+                    u.id as pregunta_id,
+                    u.nombre_completo as pregunta_texto,
+                    AVG(rd.calificacion) as promedio,
+                    COUNT(DISTINCT e.id) as total_encuestas
+                FROM encuesta e
+                JOIN usuario u ON u.id = e.usuario_id
+                JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
+                WHERE e.administracion_id IS NOT NULL
+            ";
+            $grupo = " GROUP BY u.id ORDER BY promedio DESC";
+        } elseif ($por === 'plaza') {
+            $sql = "
+                SELECT
+                    pl.id as pregunta_id,
+                    pl.nombre as pregunta_texto,
+                    AVG(rd.calificacion) as promedio,
+                    COUNT(DISTINCT e.id) as total_encuestas
+                FROM encuesta e
+                JOIN usuario u ON u.id = e.usuario_id
+                JOIN plaza pl ON pl.id = u.plaza_id
+                JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
+                WHERE e.administracion_id IS NOT NULL
+            ";
+            $grupo = " GROUP BY pl.id ORDER BY promedio DESC";
+        } else {
+            $sql = "
+                SELECT
+                    a.id as pregunta_id,
+                    a.nombre as pregunta_texto,
+                    AVG(rd.calificacion) as promedio,
+                    COUNT(DISTINCT e.id) as total_encuestas
+                FROM administracion a
+                JOIN encuesta e ON e.administracion_id = a.id
+                JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
+                WHERE 1 = 1
+            ";
+            $grupo = " GROUP BY a.id ORDER BY promedio DESC";
+        }
 
         $params = [];
         $this->agregarRangoFecha($sql, $params);
-
-        $sql .= " GROUP BY a.id ORDER BY promedio DESC";
+        $sql .= $grupo;
 
         echo json_encode($this->promediosDesdeSql($sql, $params));
     }
