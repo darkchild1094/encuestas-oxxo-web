@@ -44,6 +44,12 @@ class DashboardController
         $tendencia = $m->tendenciaDiaria(30);
         $plazas = $esAtiGlobal ? $m->plazasParaFiltro() : [];
 
+        // Encuesta de oficina (global, sin alcance de plaza).
+        $oficinaKpis = $m->oficinaKpis();
+        $oficinaPorArea = $m->oficinaPorArea();
+        $oficinaPorAti = $m->oficinaPorAti();
+        $oficinaPorPlaza = $m->oficinaPorPlaza();
+
         $tituloPagina = 'Dashboard';
         require __DIR__ . '/../views/dashboard.php';
     }

@@ -99,4 +99,32 @@ $npsTotal = max(1, (int) $nps['total']);
   <?= barras_html(array_map(static fn($r) => [$r['pfs'], $r['promedio'], $r['total_respuestas']], $porPfs)) ?>
 </section>
 
+<div class="section-intro" style="margin-top:var(--sp-6)">
+  <h2>Encuesta de oficina</h2>
+  <span>
+    <?= number_format($oficinaKpis['total_encuestas']) ?> encuesta<?= $oficinaKpis['total_encuestas'] === 1 ? '' : 's' ?>
+    &middot; <?= $oficinaKpis['areas'] ?> area<?= $oficinaKpis['areas'] === 1 ? '' : 's' ?>
+    &middot; promedio <strong class="kpi-<?= clase_calificacion($oficinaKpis['promedio_general']) ?>"><?= number_format($oficinaKpis['promedio_general'], 1) ?>/10</strong>
+  </span>
+</div>
+
+<?php if ($oficinaKpis['total_encuestas'] === 0): ?>
+<section class="panel"><p class="chart-empty">Todavia no hay respuestas de la encuesta de oficina.</p></section>
+<?php else: ?>
+<div class="card-grid">
+  <section class="panel">
+    <h2 class="panel-title">Oficina &mdash; por area</h2>
+    <?= barras_html(array_map(static fn($r) => [$r['nombre'], $r['promedio'], $r['total']], $oficinaPorArea)) ?>
+  </section>
+  <section class="panel">
+    <h2 class="panel-title">Oficina &mdash; por ATI</h2>
+    <?= barras_html(array_map(static fn($r) => [$r['nombre'], $r['promedio'], $r['total']], $oficinaPorAti)) ?>
+  </section>
+</div>
+<section class="panel">
+  <h2 class="panel-title">Oficina &mdash; por plaza</h2>
+  <?= barras_html(array_map(static fn($r) => [$r['nombre'], $r['promedio'], $r['total']], $oficinaPorPlaza)) ?>
+</section>
+<?php endif; ?>
+
 <?php require __DIR__ . '/layout_footer.php'; ?>

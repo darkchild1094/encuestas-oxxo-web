@@ -234,6 +234,110 @@ final class MetricasRespuestas
         ], $filas);
     }
 
+    // -----------------------------------------------------------------
+    // Encuesta de OFICINA (encuesta.administracion_id). Es global: las
+    // areas administrativas no tienen alcance de plaza, asi que solo se
+    // aplican los filtros de fecha, no el de plaza. Devuelven todas la
+    // misma forma {nombre, total, promedio} para pintarlas igual.
+    // -----------------------------------------------------------------
+
+    /** @return array{sql:string, params:array<string,mixed>} */
+    private function whereFechasOficina(): array
+    {
+        $sql = ' WHERE e.administracion_id IS NOT NULL ';
+        $params = [];
+        if (!empty($this->filtros['desde'])) {
+            $sql .= ' AND e.fecha_creacion_local >= :desde ';
+            $params['desde'] = $this->filtros['desde'] . ' 00:00:00';
+        }
+        if (!empty($this->filtros['hasta'])) {
+            $sql .= ' AND e.fecha_creacion_local <= :hasta ';
+            $params['hasta'] = $this->filtros['hasta'] . ' 23:59:59';
+        }
+        return ['sql' => $sql, 'params' => $params];
+    }
+
+    /** @return array{total_encuestas:int, areas:int, promedio_general:float} */
+    public function oficinaKpis(): array
+    {
+        ['sql' => $w, 'params' => $p] = $this->whereFechasOficina();
+        $fila = $this->consultar("
+            SELECT COUNT(DISTINCT e.id) AS total_encuestas,
+                   COUNT(DISTINCT e.administracion_id) AS areas,
+                   AVG(rd.calificacion) AS promedio_general
+            FROM encuesta e
+            JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
+            {$w}
+        ", $p)[0] ?? [];
+
+        return [
+            'total_encuestas' => (int) ($fila['total_encuestas'] ?? 0),
+            'areas' => (int) ($fila['areas'] ?? 0),
+            'promedio_general' => self::num($fila['promedio_general'] ?? 0),
+        ];
+    }
+
+    /** @return list<array{nombre:string, total:int, promedio:float}> */
+    public function oficinaPorArea(): array
+    {
+        ['sql' => $w, 'params' => $p] = $this->whereFechasOficina();
+        return $this->oficinaFilas("
+            SELECT a.nombre AS nombre,
+                   COUNT(DISTINCT e.id) AS total,
+                   AVG(rd.calificacion) AS promedio
+            FROM encuesta e
+            JOIN administracion a ON a.id = e.administracion_id
+            JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
+            {$w}
+            GROUP BY a.id
+            ORDER BY promedio DESC, a.nombre
+        ", $p);
+    }
+
+    /** @return list<array{nombre:string, total:int, promedio:float}> */
+    public function oficinaPorAti(): array
+    {
+        ['sql' => $w, 'params' => $p] = $this->whereFechasOficina();
+        return $this->oficinaFilas("
+            SELECT COALESCE(u.nombre_completo, '(sin ATI)') AS nombre,
+                   COUNT(DISTINCT e.id) AS total,
+                   AVG(rd.calificacion) AS promedio
+            FROM encuesta e
+            JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
+            LEFT JOIN usuario u ON u.id = e.usuario_id
+            {$w}
+            GROUP BY u.id
+            ORDER BY promedio DESC, nombre
+        ", $p);
+    }
+
+    /** @return list<array{nombre:string, total:int, promedio:float}> */
+    public function oficinaPorPlaza(): array
+    {
+        ['sql' => $w, 'params' => $p] = $this->whereFechasOficina();
+        return $this->oficinaFilas("
+            SELECT COALESCE(pl.nombre, '(sin plaza)') AS nombre,
+                   COUNT(DISTINCT e.id) AS total,
+                   AVG(rd.calificacion) AS promedio
+            FROM encuesta e
+            JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
+            LEFT JOIN usuario u ON u.id = e.usuario_id
+            LEFT JOIN plaza pl ON pl.id = u.plaza_id
+            {$w}
+            GROUP BY pl.id
+            ORDER BY promedio DESC, nombre
+        ", $p);
+    }
+
+    private function oficinaFilas(string $sql, array $params): array
+    {
+        return array_map(static fn($f) => [
+            'nombre' => (string) $f['nombre'],
+            'total' => (int) $f['total'],
+            'promedio' => self::num($f['promedio']),
+        ], $this->consultar($sql, $params));
+    }
+
     /** Plazas disponibles para el filtro (todas si es global, solo la suya si no). */
     public function plazasParaFiltro(): array
     {
