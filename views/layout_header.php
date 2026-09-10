@@ -9,6 +9,13 @@ $inicial = mb_strtoupper(mb_substr($nombreCompleto !== '' ? $nombreCompleto : '?
 $puedeVerResultados = ($rol === 'ATI') && !empty($_SESSION['ve_resultados_tiendas']);
 $flashOk = $_SESSION['_flash_ok'] ?? null;   unset($_SESSION['_flash_ok']);
 $flashError = $_SESSION['_flash_error'] ?? null; unset($_SESSION['_flash_error']);
+
+// Cache-busting de estaticos propios: el .htaccess los cachea 7 dias, asi
+// que sin ?v=... un cambio de CSS/JS no llega hasta que expire la cache.
+$ver = static function (string $rel): string {
+    $abs = __DIR__ . '/../public' . $rel;
+    return BASE_URL . $rel . '?v=' . (is_file($abs) ? filemtime($abs) : time());
+};
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -17,9 +24,11 @@ $flashError = $_SESSION['_flash_error'] ?? null; unset($_SESSION['_flash_error']
   <title><?= isset($tituloPagina) ? e($tituloPagina) . ' · ' : '' ?>Encuestas OXXO</title>
   <link rel="icon" type="image/svg+xml" href="<?= BASE_URL ?>/assets/favicon-pulso-ti.svg">
   <?php require __DIR__ . '/bootstrap.php'; ?>
-  <link rel="stylesheet" href="<?= BASE_URL ?>/css/style.css">
+  <link rel="stylesheet" href="<?= $ver('/css/style.css') ?>">
+  <script src="<?= $ver('/js/panel.js') ?>" defer></script>
 </head>
 <body>
+<div id="panel-progress" aria-hidden="true"></div>
 <a class="skip-link" href="#contenido">Saltar al contenido</a>
 <nav class="topnav" aria-label="Navegacion principal">
   <div class="topnav-inner">
@@ -72,31 +81,4 @@ $flashError = $_SESSION['_flash_error'] ?? null; unset($_SESSION['_flash_error']
 <main class="page-shell" id="contenido">
 <?php if ($flashOk): ?><div class="flash flash-ok" role="status"><?= e($flashOk) ?></div><?php endif; ?>
 <?php if ($flashError): ?><div class="flash flash-error" role="alert"><?= e($flashError) ?></div><?php endif; ?>
-<script>
-// Handler delegado para cualquier boton .js-copiar-enlace: copia el
-// input de solo lectura que lo acompana dentro de .copy-link. Un solo
-// listener en toda la pagina, sirve para cuantos enlaces copiables haya.
-document.addEventListener('click', function (ev) {
-  var boton = ev.target.closest('.js-copiar-enlace');
-  if (!boton) { return; }
-  var campo = boton.closest('.copy-link').querySelector('input');
-  if (!campo) { return; }
-  campo.select();
-  campo.setSelectionRange(0, 99999);
-  var avisar = function () {
-    var textoOriginal = boton.textContent;
-    boton.textContent = 'Copiado';
-    boton.disabled = true;
-    setTimeout(function () { boton.textContent = textoOriginal; boton.disabled = false; }, 1500);
-  };
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(campo.value).then(avisar, function () {
-      document.execCommand('copy');
-      avisar();
-    });
-  } else {
-    document.execCommand('copy');
-    avisar();
-  }
-});
-</script>
+<?php /* El JS del panel (navegacion sin recarga + copiar-enlace) vive en public/js/panel.js */ ?>

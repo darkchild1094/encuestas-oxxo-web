@@ -15,8 +15,8 @@ $npsTotal = max(1, (int) $nps['total']);
   </div>
   <div class="heading-actions">
     <a class="btn btn-outline" href="<?= BASE_URL ?>/respuestas<?= $qsExport ? '?' . e($qsExport) : '' ?>"><i class="fa-solid fa-table-list" aria-hidden="true"></i> Ver detalle</a>
-    <a class="btn btn-secundario" href="<?= BASE_URL ?>/respuestas/exportar<?= $qsExport ? '?' . e($qsExport) : '' ?>"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</a>
-    <a class="btn btn-outline" href="<?= BASE_URL ?>/respuestas/exportar-csv<?= $qsExport ? '?' . e($qsExport) : '' ?>"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> CSV</a>
+    <a class="btn btn-secundario no-ajax" href="<?= BASE_URL ?>/respuestas/exportar<?= $qsExport ? '?' . e($qsExport) : '' ?>"><i class="fa-solid fa-file-excel" aria-hidden="true"></i> Excel</a>
+    <a class="btn btn-outline no-ajax" href="<?= BASE_URL ?>/respuestas/exportar-csv<?= $qsExport ? '?' . e($qsExport) : '' ?>"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> CSV</a>
   </div>
 </div>
 

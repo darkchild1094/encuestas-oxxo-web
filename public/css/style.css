@@ -193,13 +193,30 @@ a { color: var(--red); }
 .ambito-toggle .nav-link {
   padding: 8px 18px;
   border-radius: 999px;
-  color: var(--muted);
+  color: var(--ink-soft);
   text-decoration: none;
   font-size: 13.5px;
   font-weight: 700;
+  transition: background .15s ease, color .15s ease;
 }
 .ambito-toggle .nav-link:hover { color: var(--red); }
-.ambito-toggle .nav-link.active { background: var(--red); color: #fff; }
+.ambito-toggle .nav-link.active { background: var(--red); color: #fff; box-shadow: var(--shadow-sm); }
+
+/* Barra de progreso de la navegacion sin recarga (panel.js). */
+#panel-progress {
+  position: fixed;
+  top: 0; left: 0;
+  height: 3px;
+  width: 0;
+  background: var(--red);
+  z-index: 2000;
+  opacity: 0;
+  transition: width .25s ease, opacity .3s ease;
+  pointer-events: none;
+}
+#panel-progress.activo { width: 92%; opacity: 1; transition: width 12s cubic-bezier(.1,.7,.1,1), opacity .1s; }
+body.is-loading { cursor: progress; }
+body.is-loading .page-shell { opacity: .6; transition: opacity .15s ease; }
 
 .nav-account { display: flex; align-items: center; gap: var(--sp-3); }
 .usuario-actual {

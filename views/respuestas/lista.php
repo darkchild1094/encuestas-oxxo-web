@@ -45,8 +45,8 @@ foreach ($filas as $fila) {
     <div class="col-12 col-sm-6 col-lg-3"><label class="form-label" for="desde">Desde</label><input class="form-control" id="desde" type="date" name="desde" value="<?= e($_GET['desde'] ?? '') ?>"></div>
     <div class="col-12 col-sm-6 col-lg-3"><label class="form-label" for="hasta">Hasta</label><input class="form-control" id="hasta" type="date" name="hasta" value="<?= e($_GET['hasta'] ?? '') ?>"></div>
     <div class="col-12 col-lg-auto"><button class="btn btn-primary" type="submit">Filtrar</button></div>
-    <div class="col-12 col-lg-auto"><a class="boton-secundario btn btn-success" href="<?= BASE_URL ?>/respuestas/exportar?<?= http_build_query($_GET + ['ambito' => 'oficina']) ?>">Exportar Excel</a></div>
-    <div class="col-12 col-lg-auto"><a class="btn btn-outline" href="<?= BASE_URL ?>/respuestas/exportar-csv?<?= http_build_query($_GET + ['ambito' => 'oficina']) ?>">CSV</a></div>
+    <div class="col-12 col-lg-auto"><a class="boton-secundario btn btn-success no-ajax" href="<?= BASE_URL ?>/respuestas/exportar?<?= http_build_query($_GET + ['ambito' => 'oficina']) ?>">Exportar Excel</a></div>
+    <div class="col-12 col-lg-auto"><a class="btn btn-outline no-ajax" href="<?= BASE_URL ?>/respuestas/exportar-csv?<?= http_build_query($_GET + ['ambito' => 'oficina']) ?>">CSV</a></div>
   </form>
 
   <div class="section-intro"><h2>Encuestas</h2><span><?= count($encuestas) ?> encuesta<?= count($encuestas) === 1 ? '' : 's' ?></span></div>
@@ -104,8 +104,8 @@ foreach ($filas as $fila) {
   <div class="col-12 col-sm-6 col-lg-3"><label class="form-label" for="hasta">Hasta</label><input class="form-control" id="hasta" type="date" name="hasta" value="<?= htmlspecialchars($_GET['hasta'] ?? '') ?>"></div>
   <div class="col-12 col-lg-auto"><button class="btn btn-primary" type="submit">Filtrar respuestas</button></div>
   <div class="col-12 col-lg-auto"><a class="btn btn-outline" href="<?= BASE_URL ?>/dashboard?<?= http_build_query(array_intersect_key($_GET, array_flip(['desde', 'hasta', 'plaza_id']))) ?>"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Dashboard</a></div>
-  <div class="col-12 col-lg-auto"><a class="boton-secundario btn btn-success" href="<?= BASE_URL ?>/respuestas/exportar?<?= http_build_query($_GET) ?>">Exportar Excel</a></div>
-  <div class="col-12 col-lg-auto"><a class="btn btn-outline" href="<?= BASE_URL ?>/respuestas/exportar-csv?<?= http_build_query($_GET) ?>">CSV</a></div>
+  <div class="col-12 col-lg-auto"><a class="boton-secundario btn btn-success no-ajax" href="<?= BASE_URL ?>/respuestas/exportar?<?= http_build_query($_GET) ?>">Exportar Excel</a></div>
+  <div class="col-12 col-lg-auto"><a class="btn btn-outline no-ajax" href="<?= BASE_URL ?>/respuestas/exportar-csv?<?= http_build_query($_GET) ?>">CSV</a></div>
 </form>
 
 <?php if (!$tiendaId): ?>
