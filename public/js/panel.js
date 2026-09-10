@@ -42,6 +42,18 @@
     }
     viejo.innerHTML = nuevo.innerHTML;
 
+    // La barra superior tambien se re-pinta: sus clases "active"
+    // (nav_activo() en PHP) dependen de la URL, y como esta FUERA de
+    // #contenido no se actualizaria sola al navegar por AJAX.
+    var menuNuevo = doc.querySelector('#nav-menu');
+    var menuVivo = document.querySelector('#nav-menu');
+    if (menuNuevo && menuVivo) {
+      menuVivo.innerHTML = menuNuevo.innerHTML;
+      menuVivo.classList.remove('is-open'); // cierra el menu movil tras navegar
+      var tgl = document.querySelector('.nav-toggle');
+      if (tgl) { tgl.setAttribute('aria-expanded', 'false'); }
+    }
+
     var t = doc.querySelector('title');
     if (t) { document.title = t.textContent; }
 
@@ -98,17 +110,22 @@
 
   // --- interceptores ---------------------------------------------------
   function esExterno(a) {
+    var href = a.getAttribute('href') || '';
     return a.hasAttribute('download') ||
       a.target === '_blank' || a.target === '_top' ||
       a.classList.contains('no-ajax') ||
-      /\/respuestas\/exportar/.test(a.getAttribute('href') || '') ||
+      /\/respuestas\/exportar/.test(href) ||
+      /\/(logout|login)(\?|$)/.test(href) || // logout/login -> pagina completa
       a.origin !== window.location.origin;
   }
 
   document.addEventListener('click', function (e) {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) { return; }
     var a = e.target.closest('a[href]');
-    if (!a || !contenido().contains(a)) { return; }
+    if (!a) { return; }
+    // Enlaces del contenido O de la barra superior (.topnav): ambos
+    // navegan por AJAX. Cualquier otro <a> (footer, etc.) se ignora.
+    if (!contenido().contains(a) && !a.closest('.topnav')) { return; }
     var href = a.getAttribute('href');
     if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0) { return; }
     if (esExterno(a)) { return; }
