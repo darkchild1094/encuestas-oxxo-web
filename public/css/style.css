@@ -76,7 +76,12 @@ body {
   line-height: 1.55;
   background-image: radial-gradient(circle at 92% -4%, rgba(250, 175, 4, .16), transparent 30rem);
   min-height: 100vh;
+  /* Sticky footer: la columna crece con .page-shell y el footer queda
+     siempre pegado abajo, aunque la pagina tenga poco contenido. */
+  display: flex;
+  flex-direction: column;
 }
+body.login-page { display: block; } /* el login tiene su propio layout */
 
 h1, h2, h3, .panel-title, .brand strong {
   font-family: 'Space Grotesk', 'DM Sans', sans-serif;
@@ -263,6 +268,7 @@ body.is-loading .page-shell { opacity: .6; transition: opacity .15s ease; }
   width: min(var(--shell), calc(100% - 2 * var(--sp-5)));
   margin: 0 auto;
   padding: var(--sp-6) 0 var(--sp-8);
+  flex: 1 0 auto; /* empuja el footer hacia abajo (sticky footer) */
 }
 .page-heading {
   display: flex;
@@ -538,7 +544,7 @@ body.is-loading .page-shell { opacity: .6; transition: opacity .15s ease; }
 .password-card { width: min(100%, 560px); }
 
 /* ---------- Footer ---------- */
-.site-footer { display: flex; align-items: center; justify-content: center; gap: 9px; padding: var(--sp-5); color: var(--muted); text-align: center; font-size: 12px; }
+.site-footer { flex-shrink: 0; display: flex; align-items: center; justify-content: center; gap: 9px; padding: var(--sp-5); color: var(--muted); text-align: center; font-size: 12px; border-top: 1px solid var(--line); }
 .site-footer img { width: 72px; height: 22px; object-fit: contain; opacity: .8; }
 
 /* ---------- Login ---------- */
