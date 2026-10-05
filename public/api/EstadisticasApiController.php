@@ -271,6 +271,9 @@ class EstadisticasApiController
             ";
             $grupo = " GROUP BY u.id ORDER BY promedio DESC";
         } elseif ($por === 'plaza') {
+            // e.plaza_id: lo que el usuario elige al contestar el formulario
+            // publico (sin login, usuario_id NULL). u.plaza_id: plaza fija
+            // del usuario logueado (app) para encuestas contestadas desde ahi.
             $sql = "
                 SELECT
                     pl.id as pregunta_id,
@@ -278,8 +281,8 @@ class EstadisticasApiController
                     AVG(rd.calificacion) as promedio,
                     COUNT(DISTINCT e.id) as total_encuestas
                 FROM encuesta e
-                JOIN usuario u ON u.id = e.usuario_id
-                JOIN plaza pl ON pl.id = u.plaza_id
+                LEFT JOIN usuario u ON u.id = e.usuario_id
+                JOIN plaza pl ON pl.id = COALESCE(e.plaza_id, u.plaza_id)
                 JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
                 WHERE e.administracion_id IS NOT NULL
             ";

@@ -38,10 +38,14 @@ class EncuestaPublicaController
             WHERE activo = 1 ORDER BY nombre
         ')->fetchAll();
 
+        $plazas = $pdo->query('
+            SELECT id, nombre FROM plaza ORDER BY nombre
+        ')->fetchAll();
+
         $enviada = isset($_GET['ok']);
         $error = $_SESSION['error_encuesta_publica'] ?? null;
         unset($_SESSION['error_encuesta_publica']);
-        $disponible = $cuestionario && $preguntas && $areas;
+        $disponible = $cuestionario && $preguntas && $areas && $plazas;
 
         require __DIR__ . '/../views/encuesta_publica/form.php';
     }
@@ -84,6 +88,13 @@ class EncuestaPublicaController
             $this->rebotar('Selecciona un area valida.');
         }
 
+        $plazaId = (int) ($_POST['plaza_id'] ?? 0);
+        $stmt = $pdo->prepare('SELECT id FROM plaza WHERE id = :id');
+        $stmt->execute(['id' => $plazaId]);
+        if (!$stmt->fetch()) {
+            $this->rebotar('Selecciona a que plaza perteneces.');
+        }
+
         $stmt = $pdo->prepare('
             SELECT id FROM pregunta
             WHERE cuestionario_id = :c AND activo = 1
@@ -122,14 +133,15 @@ class EncuestaPublicaController
 
             $stmt = $pdo->prepare('
                 INSERT INTO encuesta
-                    (id, usuario_id, tienda_id, administracion_id, cuestionario_id, folio,
+                    (id, usuario_id, tienda_id, administracion_id, plaza_id, cuestionario_id, folio,
                      comentario, fecha_creacion_local, sincronizado, fecha_sincronizacion)
                 VALUES
-                    (:id, NULL, NULL, :adm, :cue, :folio, :com, NOW(), 1, NOW())
+                    (:id, NULL, NULL, :adm, :plaza, :cue, :folio, :com, NOW(), 1, NOW())
             ');
             $stmt->execute([
                 'id' => $encuestaId,
                 'adm' => $adminId,
+                'plaza' => $plazaId,
                 'cue' => $cuestionario['id'],
                 'folio' => $folio,
                 'com' => $comentario,

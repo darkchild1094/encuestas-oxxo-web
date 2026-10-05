@@ -10,6 +10,7 @@ foreach ($filas as $fila) {
       'fecha' => $fila['fecha_creacion_local'],
       'tienda' => $fila['tienda'] ?? '',
       'area' => $fila['administracion'] ?? '',
+      'plaza' => $fila['plaza'] ?? '',
       'usuario' => $fila['usuario'] ?? '(usuario eliminado)',
       'comentario' => $fila['comentario'] ?? '',
       'respuestas' => [],
@@ -57,7 +58,7 @@ foreach ($filas as $fila) {
           <header class="survey-header">
             <div>
               <strong><?= e($encuesta['area'] ?: 'Sin área') ?></strong>
-              <span>Folio <?= e($encuesta['folio']) ?> &middot; <?= e($encuesta['fecha']) ?></span>
+              <span>Folio <?= e($encuesta['folio']) ?> &middot; <?= e($encuesta['plaza'] ?: 'Sin plaza') ?> &middot; <?= e($encuesta['fecha']) ?></span>
             </div>
           </header>
           <div class="answer-list">

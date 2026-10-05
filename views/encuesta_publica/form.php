@@ -64,6 +64,16 @@
         </select>
       </div>
 
+      <div class="mb-3">
+        <label class="form-label" for="plaza_id"><strong>Plaza</strong></label>
+        <select class="form-select" id="plaza_id" name="plaza_id" required>
+          <option value="">Selecciona tu plaza…</option>
+          <?php foreach ($plazas as $pl): ?>
+            <option value="<?= (int) $pl['id'] ?>"><?= htmlspecialchars($pl['nombre']) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
       <?php foreach ($preguntas as $p): ?>
         <fieldset class="pregunta">
           <legend style="font-size:1rem;font-weight:600"><?= htmlspecialchars($p['texto']) ?></legend>
