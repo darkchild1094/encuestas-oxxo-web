@@ -6,7 +6,7 @@ $nombreCompleto = $_SESSION['nombre_completo'] ?? '';
 $fotoPerfil = $_SESSION['foto_perfil'] ?? null;
 $inicial = mb_strtoupper(mb_substr($nombreCompleto !== '' ? $nombreCompleto : '?', 0, 1));
 
-$puedeVerResultados = ($rol === 'ATI') && !empty($_SESSION['ve_resultados_tiendas']);
+$puedeVerResultados = !empty($_SESSION['ve_resultados_tiendas']);
 $flashOk = $_SESSION['_flash_ok'] ?? null;   unset($_SESSION['_flash_ok']);
 $flashError = $_SESSION['_flash_error'] ?? null; unset($_SESSION['_flash_error']);
 

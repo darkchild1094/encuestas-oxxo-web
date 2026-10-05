@@ -3,10 +3,21 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../src/Auth.php';
 
-// Solo ATI entra aqui (ve_resultados_tiendas). Ni webmaster ni
-// usuario normal ven esta pantalla.
+// Entra aqui quien tenga el permiso ve_resultados_tiendas (ATI y
+// WEBMASTER hoy; ver migracion_webmaster_ve_resultados.sql). Un ATI de
+// plaza solo ve/opera sobre su propia plaza; el ATI global (id 128) y
+// WEBMASTER (sin plaza asignada) ven todas.
 class RespuestaController
 {
+    // true si la sesion no debe filtrarse por plaza: el ATI global
+    // (usuario 128, caso especial historico) o cualquier WEBMASTER, que
+    // no tiene plaza_id propia.
+    private function veTodasLasPlazas(): bool
+    {
+        return (int) ($_SESSION['usuario_id'] ?? 0) === 128
+            || ($_SESSION['rol'] ?? '') === 'WEBMASTER';
+    }
+
     private function query(array $filtros): array
     {
         $sql = '
@@ -27,9 +38,8 @@ class RespuestaController
             JOIN pregunta preg ON preg.id = rd.pregunta_id
             WHERE 1 = 1
         ';
-        $esAtiGlobal = (int) ($_SESSION['usuario_id'] ?? 0) === 128;
         $params = [];
-        if (!$esAtiGlobal) {
+        if (!$this->veTodasLasPlazas()) {
             $sql .= ' AND t.plaza_id = :sesion_plaza_id';
             $params['sesion_plaza_id'] = $_SESSION['plaza_id'];
         }
@@ -133,11 +143,6 @@ class RespuestaController
 
     public function index(): void
     {
-        if (($_SESSION['rol'] ?? '') !== 'ATI') {
-            http_response_code(403);
-            echo 'Solo el rol ATI puede consultar las respuestas.';
-            exit;
-        }
         Auth::requierePermiso('ve_resultados_tiendas');
         $pdo = Database::conexion();
 
@@ -150,7 +155,7 @@ class RespuestaController
             return;
         }
 
-        $esAtiGlobal = (int) $_SESSION['usuario_id'] === 128;
+        $esAtiGlobal = $this->veTodasLasPlazas();
 
         // Nombre de la plaza de la sesion para el subtitulo (antes se
         // pintaba el id crudo: "Plaza 1").
@@ -193,11 +198,6 @@ class RespuestaController
 
     public function exportarExcel(): void
     {
-        if (($_SESSION['rol'] ?? '') !== 'ATI') {
-            http_response_code(403);
-            echo 'Solo el rol ATI puede exportar las respuestas de tiendas.';
-            exit;
-        }
         Auth::requierePermiso('ve_resultados_tiendas');
 
         if ($this->ambitoDesdeGet() === 'oficina') {
@@ -220,10 +220,9 @@ class RespuestaController
 
         $filasDetalle = $this->query($filtrosExportacion);
 
-        $esAtiGlobal = (int) ($_SESSION['usuario_id'] ?? 0) === 128;
         $reporte = new ReporteRespuestas(
             Database::conexion(),
-            $esAtiGlobal,
+            $this->veTodasLasPlazas(),
             $_SESSION['plaza_id'] ?? null,
             $filtrosExportacion
         );
@@ -240,11 +239,6 @@ class RespuestaController
     // util para abrir rapido en cualquier herramienta o pegarlo en Sheets.
     public function exportarCsv(): void
     {
-        if (($_SESSION['rol'] ?? '') !== 'ATI') {
-            http_response_code(403);
-            echo 'Solo el rol ATI puede exportar las respuestas de tiendas.';
-            exit;
-        }
         Auth::requierePermiso('ve_resultados_tiendas');
 
         if ($this->ambitoDesdeGet() === 'oficina') {
@@ -295,6 +289,65 @@ class RespuestaController
             ]);
         }
         fclose($out);
+        exit;
+    }
+
+    // Borra UNA respuesta (de tienda o de oficina) con su detalle. Un ATI
+    // de plaza solo puede borrar encuestas de tiendas de su propia plaza;
+    // el ATI global y WEBMASTER pueden borrar cualquiera. La de oficina
+    // es global, sin alcance de plaza para nadie.
+    // respuesta_detalle.encuesta_id no tiene FK real (ver
+    // sql/limpieza_respuesta_detalle_huerfana.sql), asi que se borran las
+    // dos tablas a mano, en una transaccion.
+    public function eliminar(): void
+    {
+        Auth::requierePermiso('ve_resultados_tiendas');
+
+        $redir = (string) ($_POST['redir'] ?? '');
+        $destino = BASE_URL . '/respuestas' . ($redir !== '' ? ('?' . $redir) : '');
+
+        $id = (string) ($_POST['encuesta_id'] ?? '');
+        if (!preg_match('/^[0-9a-f-]{36}$/i', $id)) {
+            header('Location: ' . $destino);
+            exit;
+        }
+
+        $pdo = Database::conexion();
+        $stmt = $pdo->prepare('SELECT tienda_id FROM encuesta WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+        $encuesta = $stmt->fetch();
+
+        if (!$encuesta) {
+            $_SESSION['_flash_error'] = 'Esa respuesta ya no existe (puede que ya la hayan borrado).';
+            header('Location: ' . $destino);
+            exit;
+        }
+
+        if ($encuesta['tienda_id'] && !$this->veTodasLasPlazas()) {
+            $stmt = $pdo->prepare('SELECT plaza_id FROM tienda WHERE id = :id');
+            $stmt->execute(['id' => $encuesta['tienda_id']]);
+            if ((int) $stmt->fetchColumn() !== (int) ($_SESSION['plaza_id'] ?? 0)) {
+                http_response_code(403);
+                echo 'No tienes permiso para eliminar esta respuesta.';
+                exit;
+            }
+        }
+
+        try {
+            $pdo->beginTransaction();
+            $pdo->prepare('DELETE FROM respuesta_detalle WHERE encuesta_id = :id')->execute(['id' => $id]);
+            $pdo->prepare('DELETE FROM encuesta WHERE id = :id')->execute(['id' => $id]);
+            $pdo->commit();
+            $_SESSION['_flash_ok'] = 'Respuesta eliminada.';
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log('[respuestas/eliminar] ' . $e->getMessage());
+            $_SESSION['_flash_error'] = 'No se pudo eliminar la respuesta.';
+        }
+
+        header('Location: ' . $destino);
         exit;
     }
 }

@@ -2,8 +2,9 @@
 
 /* =========================================================================
    Pulso TI — panel OXXO. Hoja unica, complementa a Bootstrap 5.
-   Tokens con modo claro y oscuro (prefers-color-scheme), escala de espacio,
-   foco visible y respeto a prefers-reduced-motion.
+   Tokens de color (siempre modo claro -- no se sigue prefers-color-scheme
+   a proposito, el panel se ve igual sin importar el tema del SO/navegador),
+   escala de espacio, foco visible y respeto a prefers-reduced-motion.
    ========================================================================= */
 
 :root {
@@ -37,32 +38,6 @@
   --shell: 1180px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --red: #ff5a54;
-    --red-dark: #ff7a75;
-    --amber: #ffc23d;
-    --green: #4bd0a8;
-    --green-soft: #12312a;
-
-    --ink: #f3e9e4;
-    --ink-soft: #d8ccc6;
-    --muted: #a99f99;
-    --paper: #1a1413;
-    --surface: #241d1b;
-    --surface-2: #2e2320;
-    --line: #3a2e2a;
-
-    --promotor: #3fbd85;
-    --pasivo: #e8b53c;
-    --detractor: #ff6a5c;
-
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, .35);
-    --shadow: 0 16px 40px rgba(0, 0, 0, .45);
-    --focus: 0 0 0 3px rgba(255, 194, 61, .5);
-  }
-}
-
 * { box-sizing: border-box; }
 
 html { -webkit-text-size-adjust: 100%; }
@@ -81,7 +56,10 @@ body {
   display: flex;
   flex-direction: column;
 }
-body.login-page { display: block; } /* el login tiene su propio layout */
+/* .login-page (mas abajo) ya pone su propio display:flex centrado; no
+   se vuelve a declarar display aqui -- antes decia "display:block" con
+   selector body.login-page, que por especificidad (tag+clase) le ganaba
+   al display:flex de ".login-page" y descentraba el login. */
 
 h1, h2, h3, .panel-title, .brand strong {
   font-family: 'Space Grotesk', 'DM Sans', sans-serif;
@@ -301,9 +279,6 @@ body.is-loading .page-shell { opacity: .6; transition: opacity .15s ease; }
 }
 .flash-ok { background: var(--green-soft); color: var(--green); border-color: color-mix(in srgb, var(--green) 30%, transparent); }
 .flash-error { background: #fde5e2; color: #9b321f; border-color: #f3b9b0; }
-@media (prefers-color-scheme: dark) {
-  .flash-error { background: #3a1f1a; color: #ff9c8f; border-color: #5c3128; }
-}
 
 /* ---------- Paneles / tarjetas ---------- */
 .panel {
@@ -447,10 +422,6 @@ body.is-loading .page-shell { opacity: .6; transition: opacity .15s ease; }
   border-color: var(--amber);
   box-shadow: var(--focus);
 }
-@media (prefers-color-scheme: dark) {
-  .form-control, .form-select { background: var(--surface-2); }
-  .form-control::placeholder { color: var(--muted); }
-}
 
 /* ---------- Botones ---------- */
 .btn { border-radius: 9px; font-weight: 700; font-size: 13.5px; }
@@ -519,10 +490,11 @@ body.is-loading .page-shell { opacity: .6; transition: opacity .15s ease; }
 .store-count b { display: block; margin-top: 4px; font-size: 16px; }
 .survey-list { display: grid; gap: var(--sp-4); }
 .survey-card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-sm); overflow: hidden; }
-.survey-header { padding: var(--sp-4); background: var(--surface-2); }
-.survey-header div { display: flex; flex-direction: column; gap: 4px; }
+.survey-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-4); background: var(--surface-2); }
+.survey-header div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .survey-header strong { font: 700 15px 'Space Grotesk', sans-serif; }
 .survey-header span { color: var(--muted); font-size: 12px; }
+.survey-header .inline-form { flex: 0 0 auto; }
 .answer-list { padding: 6px var(--sp-4); }
 .answer-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
 .answer-row:last-child { border-bottom: 0; }
@@ -532,10 +504,6 @@ body.is-loading .page-shell { opacity: .6; transition: opacity .15s ease; }
 .cal-detractor { background: #fde5e2; color: #9b321f; }
 .cal-pasivo { background: #fff0c9; color: #795000; }
 .cal-promotor { background: var(--green-soft); color: var(--green); }
-@media (prefers-color-scheme: dark) {
-  .cal-detractor { background: #3a1f1a; color: #ff9c8f; }
-  .cal-pasivo { background: #33291a; color: #f0c559; }
-}
 .empty-state { display: flex; flex-direction: column; gap: 6px; align-items: center; padding: var(--sp-7) var(--sp-4); border: 1px dashed color-mix(in srgb, var(--line) 40%, var(--muted)); border-radius: var(--radius); background: var(--surface); color: var(--muted); text-align: center; }
 .empty-state strong { color: var(--ink); font: 600 17px 'Space Grotesk', sans-serif; }
 

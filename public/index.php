@@ -70,6 +70,7 @@ $rutas = [
     'GET /respuestas' => [RespuestaController::class, 'index'],
     'GET /respuestas/exportar' => [RespuestaController::class, 'exportarExcel'],
     'GET /respuestas/exportar-csv' => [RespuestaController::class, 'exportarCsv'],
+    'POST /respuestas/eliminar' => [RespuestaController::class, 'eliminar'],
     'GET /dashboard' => [DashboardController::class, 'index'],
 
     'GET /resumen' => [ResumenController::class, 'index'],

@@ -1,6 +1,7 @@
 <?php $tituloPagina = 'Respuestas'; require __DIR__ . '/../layout_header.php'; ?>
 <?php
 $ambito = $ambito ?? 'tiendas';
+$queryActual = http_build_query($_GET); // para volver aqui mismo tras borrar
 $encuestas = [];
 foreach ($filas as $fila) {
   $id = $fila['encuesta_id'];
@@ -53,13 +54,22 @@ foreach ($filas as $fila) {
   <div class="section-intro"><h2>Encuestas</h2><span><?= count($encuestas) ?> encuesta<?= count($encuestas) === 1 ? '' : 's' ?></span></div>
   <?php if ($encuestas): ?>
     <div class="survey-list">
-      <?php foreach ($encuestas as $encuesta): ?>
+      <?php foreach ($encuestas as $id => $encuesta): ?>
         <article class="survey-card card border-0 shadow-sm">
           <header class="survey-header">
             <div>
               <strong><?= e($encuesta['area'] ?: 'Sin área') ?></strong>
               <span>Folio <?= e($encuesta['folio']) ?> &middot; <?= e($encuesta['plaza'] ?: 'Sin plaza') ?> &middot; <?= e($encuesta['fecha']) ?></span>
             </div>
+            <form method="POST" action="<?= BASE_URL ?>/respuestas/eliminar" class="inline-form"
+                  onsubmit="return confirm('¿Borrar esta respuesta? No se puede deshacer.')">
+              <?= Csrf::campo() ?>
+              <input type="hidden" name="encuesta_id" value="<?= e($id) ?>">
+              <input type="hidden" name="redir" value="<?= e($queryActual) ?>">
+              <button class="btn btn-sm btn-danger" type="submit" title="Eliminar respuesta">
+                <i class="fa-solid fa-trash" aria-hidden="true"></i> <span class="visually-hidden">Eliminar</span>
+              </button>
+            </form>
           </header>
           <div class="answer-list">
             <?php foreach ($encuesta['respuestas'] as $respuesta): $cal = (int) $respuesta['calificacion']; $clase = $cal <= 6 ? 'cal-detractor' : ($cal <= 8 ? 'cal-pasivo' : 'cal-promotor'); ?>
@@ -128,9 +138,20 @@ foreach ($filas as $fila) {
   <div class="section-intro"><h2><?= htmlspecialchars($encuestas ? reset($encuestas)['tienda'] : 'Detalle de tienda') ?></h2><span><?= count($encuestas) ?> encuesta<?= count($encuestas) === 1 ? '' : 's' ?></span></div>
   <?php if ($encuestas): ?>
     <div class="survey-list">
-      <?php foreach ($encuestas as $encuesta): ?>
+      <?php foreach ($encuestas as $id => $encuesta): ?>
         <article class="survey-card card border-0 shadow-sm">
-          <header class="survey-header"><div><strong>Folio <?= htmlspecialchars($encuesta['folio']) ?></strong><span><?= htmlspecialchars($encuesta['fecha']) ?> &middot; <?= htmlspecialchars($encuesta['usuario']) ?></span></div></header>
+          <header class="survey-header">
+            <div><strong>Folio <?= htmlspecialchars($encuesta['folio']) ?></strong><span><?= htmlspecialchars($encuesta['fecha']) ?> &middot; <?= htmlspecialchars($encuesta['usuario']) ?></span></div>
+            <form method="POST" action="<?= BASE_URL ?>/respuestas/eliminar" class="inline-form"
+                  onsubmit="return confirm('¿Borrar esta respuesta? No se puede deshacer.')">
+              <?= Csrf::campo() ?>
+              <input type="hidden" name="encuesta_id" value="<?= htmlspecialchars($id) ?>">
+              <input type="hidden" name="redir" value="<?= htmlspecialchars($queryActual) ?>">
+              <button class="btn btn-sm btn-danger" type="submit" title="Eliminar respuesta">
+                <i class="fa-solid fa-trash" aria-hidden="true"></i> <span class="visually-hidden">Eliminar</span>
+              </button>
+            </form>
+          </header>
           <div class="answer-list">
             <?php foreach ($encuesta['respuestas'] as $respuesta): $cal = (int) $respuesta['calificacion']; $clase = $cal <= 6 ? 'cal-detractor' : ($cal <= 8 ? 'cal-pasivo' : 'cal-promotor'); ?>
               <div class="answer-row"><span><?= htmlspecialchars($respuesta['pregunta']) ?></span><span class="calificacion-tag <?= $clase ?>"><?= $cal ?>/10</span></div>
