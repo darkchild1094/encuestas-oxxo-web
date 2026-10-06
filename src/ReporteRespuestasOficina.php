@@ -10,8 +10,8 @@ use Reportes\XlsxWriter;
 /**
  * Reporte .xlsx de la encuesta de OFICINA (areas administrativas). Es el
  * equivalente de ReporteRespuestas para el otro tipo de encuesta: no hay
- * tienda/plaza/region, el eje es `administracion`. Dos hojas: resumen por
- * area (con grafica) y el detalle crudo.
+ * tienda/region, el eje principal es `administracion`. Tres hojas: resumen
+ * por area (con grafica), resumen por ATI que atendio, y el detalle crudo.
  */
 class ReporteRespuestasOficina
 {
@@ -29,6 +29,7 @@ class ReporteRespuestasOficina
     {
         $w = new XlsxWriter();
         $this->hojaResumen($w);
+        $this->hojaResumenPorAti($w);
         $this->hojaDetalle($w, $filasDetalle);
         return $w->generar();
     }
@@ -109,6 +110,58 @@ class ReporteRespuestasOficina
         }
     }
 
+    // e.usuario_id: ATI/WEBMASTER que contesto desde la app (se califica a
+    // si mismo). e.ati_atendio_id: ATI que el formulario publico (anonimo)
+    // dice que lo atendio. Un mismo ATI puede aparecer por los dos caminos.
+    private function hojaResumenPorAti(XlsxWriter $w): void
+    {
+        [$whereSql, $params] = $this->whereBase();
+
+        $sql = "
+            SELECT u.nombre_completo AS ati,
+                   COUNT(DISTINCT e.id) AS total_encuestas,
+                   AVG(rd.calificacion) AS promedio_general,
+                   SUM(CASE WHEN rd.calificacion >= 9 THEN 1 ELSE 0 END) AS promotores,
+                   SUM(CASE WHEN rd.calificacion BETWEEN 7 AND 8 THEN 1 ELSE 0 END) AS pasivos,
+                   SUM(CASE WHEN rd.calificacion <= 6 THEN 1 ELSE 0 END) AS detractores,
+                   COUNT(rd.id) AS total_respuestas
+            FROM encuesta e
+            JOIN usuario u ON u.id = COALESCE(e.usuario_id, e.ati_atendio_id)
+            JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
+            {$whereSql}
+            GROUP BY u.id
+            ORDER BY u.nombre_completo
+        ";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        $filas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $datos = array_map(function ($r) {
+            $tot = max(1, (int) $r['total_respuestas']);
+            return [
+                $r['ati'],
+                (int) $r['total_encuestas'],
+                $this->redondear($r['promedio_general']),
+                $this->redondear((int) $r['promotores'] * 100 / $tot),
+                $this->redondear((int) $r['pasivos'] * 100 / $tot),
+                $this->redondear((int) $r['detractores'] * 100 / $tot),
+            ];
+        }, $filas);
+
+        $idx = $w->agregarHoja('Resumen por ATI', [
+            ['titulo' => 'ATI'],
+            ['titulo' => 'Total encuestas', 'formato' => 'entero'],
+            ['titulo' => 'Promedio general', 'formato' => 'numero'],
+            ['titulo' => '% Promotores', 'formato' => 'numero'],
+            ['titulo' => '% Pasivos', 'formato' => 'numero'],
+            ['titulo' => '% Detractores', 'formato' => 'numero'],
+        ], $datos);
+
+        if ($datos) {
+            $w->agregarGraficaBarras($idx, 'Promedio general por ATI', 'ATI', ['Promedio general'], 'Total encuestas');
+        }
+    }
+
     private function hojaDetalle(XlsxWriter $w, array $filasDetalle): void
     {
         $datos = array_map(fn($f) => [
@@ -116,6 +169,7 @@ class ReporteRespuestasOficina
             $f['fecha_creacion_local'] ?? '',
             $f['administracion'] ?? '',
             $f['plaza'] ?? '',
+            $f['ati_atendio'] ?? '',
             $f['pregunta'] ?? '',
             (int) ($f['calificacion'] ?? 0),
             $f['comentario'] ?? '',
@@ -126,6 +180,7 @@ class ReporteRespuestasOficina
             ['titulo' => 'Fecha'],
             ['titulo' => 'Area'],
             ['titulo' => 'Plaza'],
+            ['titulo' => 'ATI que atendio'],
             ['titulo' => 'Pregunta'],
             ['titulo' => 'Calificacion', 'formato' => 'entero'],
             ['titulo' => 'Comentario'],

@@ -42,6 +42,18 @@ class EncuestaPublicaController
             SELECT id, nombre FROM plaza ORDER BY nombre
         ')->fetchAll();
 
+        // ATIs de todas las plazas, para el selector con foto que el JS
+        // filtra segun la plaza elegida (ver form.php). Sin login no se
+        // le puede pedir esto al servidor sobre la marcha por plaza, y
+        // son pocos ATIs en total, asi que se manda la lista completa.
+        $atis = $pdo->query("
+            SELECT u.id, u.nombre_completo, u.foto_perfil, u.plaza_id
+            FROM usuario u
+            JOIN rol r ON r.id = u.rol_id
+            WHERE r.nombre = 'ATI'
+            ORDER BY u.nombre_completo
+        ")->fetchAll();
+
         $enviada = isset($_GET['ok']);
         $error = $_SESSION['error_encuesta_publica'] ?? null;
         unset($_SESSION['error_encuesta_publica']);
@@ -95,6 +107,23 @@ class EncuestaPublicaController
             $this->rebotar('Selecciona a que plaza perteneces.');
         }
 
+        // El ATI elegido debe pertenecer de verdad a esa plaza (si la
+        // plaza no tiene ningun ATI dado de alta, se permite dejarlo sin
+        // elegir -- no hay de donde escoger).
+        $stmt = $pdo->prepare("
+            SELECT id FROM usuario u
+            JOIN rol r ON r.id = u.rol_id
+            WHERE r.nombre = 'ATI' AND u.plaza_id = :plaza
+        ");
+        $stmt->execute(['plaza' => $plazaId]);
+        $atisDePlaza = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $atiAtendioId = (int) ($_POST['ati_atendio_id'] ?? 0);
+        if ($atisDePlaza && !in_array($atiAtendioId, array_map('intval', $atisDePlaza), true)) {
+            $this->rebotar('Selecciona que ATI te atendio.');
+        }
+        $atiAtendioId = $atisDePlaza ? $atiAtendioId : null;
+
         $stmt = $pdo->prepare('
             SELECT id FROM pregunta
             WHERE cuestionario_id = :c AND activo = 1
@@ -133,15 +162,16 @@ class EncuestaPublicaController
 
             $stmt = $pdo->prepare('
                 INSERT INTO encuesta
-                    (id, usuario_id, tienda_id, administracion_id, plaza_id, cuestionario_id, folio,
+                    (id, usuario_id, tienda_id, administracion_id, plaza_id, ati_atendio_id, cuestionario_id, folio,
                      comentario, fecha_creacion_local, sincronizado, fecha_sincronizacion)
                 VALUES
-                    (:id, NULL, NULL, :adm, :plaza, :cue, :folio, :com, NOW(), 1, NOW())
+                    (:id, NULL, NULL, :adm, :plaza, :ati, :cue, :folio, :com, NOW(), 1, NOW())
             ');
             $stmt->execute([
                 'id' => $encuestaId,
                 'adm' => $adminId,
                 'plaza' => $plazaId,
+                'ati' => $atiAtendioId,
                 'cue' => $cuestionario['id'],
                 'folio' => $folio,
                 'com' => $comentario,

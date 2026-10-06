@@ -102,9 +102,9 @@ class RespuestaController
     // Detalle crudo de la encuesta de OFICINA (una fila por respuesta).
     // No hay tienda/region ni alcance por plaza en el filtrado: las
     // areas son globales, asi que cualquier ATI con ve_resultados_tiendas
-    // ve todo. La plaza si se muestra (elegida por el usuario al
-    // contestar el formulario publico, o la fija de su cuenta si
-    // contesto desde la app) pero solo como dato, no como filtro.
+    // ve todo. La plaza y el ATI que atendio si se muestran (elegidos por
+    // el usuario al contestar el formulario publico, o la plaza fija de
+    // su cuenta si contesto desde la app) pero solo como dato, no filtro.
     private function queryOficina(array $filtros): array
     {
         $sql = '
@@ -112,11 +112,13 @@ class RespuestaController
                 e.id AS encuesta_id, e.folio, e.fecha_creacion_local, e.comentario,
                 a.id AS administracion_id, a.nombre AS administracion,
                 pl.nombre AS plaza,
+                atiu.nombre_completo AS ati_atendio, atiu.foto_perfil AS ati_atendio_foto,
                 preg.texto AS pregunta, rd.calificacion
             FROM encuesta e
             JOIN administracion a ON a.id = e.administracion_id
             LEFT JOIN usuario u ON u.id = e.usuario_id
             LEFT JOIN plaza pl ON pl.id = COALESCE(e.plaza_id, u.plaza_id)
+            LEFT JOIN usuario atiu ON atiu.id = e.ati_atendio_id
             JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
             JOIN pregunta preg ON preg.id = rd.pregunta_id
             WHERE e.administracion_id IS NOT NULL
@@ -247,13 +249,14 @@ class RespuestaController
             header('Content-Disposition: attachment; filename="respuestas_oficina_' . date('Y-m-d_His') . '.csv"');
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['Folio', 'Fecha', 'Area', 'Plaza', 'Pregunta', 'Calificacion', 'Comentario']);
+            fputcsv($out, ['Folio', 'Fecha', 'Area', 'Plaza', 'ATI que atendio', 'Pregunta', 'Calificacion', 'Comentario']);
             foreach ($filas as $f) {
                 fputcsv($out, [
                     $f['folio'] ?? '',
                     $f['fecha_creacion_local'] ?? '',
                     $f['administracion'] ?? '',
                     $f['plaza'] ?? '',
+                    $f['ati_atendio'] ?? '',
                     $f['pregunta'] ?? '',
                     (int) ($f['calificacion'] ?? 0),
                     $f['comentario'] ?? '',

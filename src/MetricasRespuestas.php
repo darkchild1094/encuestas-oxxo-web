@@ -297,6 +297,9 @@ final class MetricasRespuestas
     /** @return list<array{nombre:string, total:int, promedio:float}> */
     public function oficinaPorAti(): array
     {
+        // e.usuario_id: ATI/WEBMASTER que contesto desde la app (se
+        // califica a si mismo). e.ati_atendio_id: ATI que el formulario
+        // publico (anonimo) dice que lo atendio.
         ['sql' => $w, 'params' => $p] = $this->whereFechasOficina();
         return $this->oficinaFilas("
             SELECT COALESCE(u.nombre_completo, '(sin ATI)') AS nombre,
@@ -304,7 +307,7 @@ final class MetricasRespuestas
                    AVG(rd.calificacion) AS promedio
             FROM encuesta e
             JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
-            LEFT JOIN usuario u ON u.id = e.usuario_id
+            LEFT JOIN usuario u ON u.id = COALESCE(e.usuario_id, e.ati_atendio_id)
             {$w}
             GROUP BY u.id
             ORDER BY promedio DESC, nombre
@@ -314,6 +317,8 @@ final class MetricasRespuestas
     /** @return list<array{nombre:string, total:int, promedio:float}> */
     public function oficinaPorPlaza(): array
     {
+        // e.plaza_id: lo que elige el formulario publico. u.plaza_id:
+        // plaza fija del usuario logueado (app) cuando no hay e.plaza_id.
         ['sql' => $w, 'params' => $p] = $this->whereFechasOficina();
         return $this->oficinaFilas("
             SELECT COALESCE(pl.nombre, '(sin plaza)') AS nombre,
@@ -322,7 +327,7 @@ final class MetricasRespuestas
             FROM encuesta e
             JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
             LEFT JOIN usuario u ON u.id = e.usuario_id
-            LEFT JOIN plaza pl ON pl.id = u.plaza_id
+            LEFT JOIN plaza pl ON pl.id = COALESCE(e.plaza_id, u.plaza_id)
             {$w}
             GROUP BY pl.id
             ORDER BY promedio DESC, nombre

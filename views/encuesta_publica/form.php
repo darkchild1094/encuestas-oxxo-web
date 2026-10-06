@@ -16,6 +16,14 @@
     .encuesta-publica .escala label:has(input:checked){background:#d70b16;color:#fff;border-color:#d70b16}
     .encuesta-publica .escala label:focus-within{outline:2px solid #241213}
     .hp-field{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+    .ati-picker .ati-aviso{color:#6b6260;font-size:.85rem;margin:.3rem 0 0}
+    .ati-grid{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:.5rem}
+    .ati-card{display:flex;flex-direction:column;align-items:center;gap:.4rem;width:5.5rem;padding:.6rem .3rem;border:2px solid transparent;border-radius:.75rem;cursor:pointer;text-align:center}
+    .ati-card input{position:absolute;opacity:0;pointer-events:none}
+    .ati-card .user-avatar, .ati-card .user-avatar--ph{width:56px;height:56px}
+    .ati-card span.ati-nombre{font-size:.75rem;font-weight:600;line-height:1.2}
+    .ati-card:has(input:checked){border-color:#d70b16;background:#fde5e2}
+    .ati-card:focus-within{outline:2px solid #241213}
   </style>
 </head>
 <body class="login-page">
@@ -74,6 +82,35 @@
         </select>
       </div>
 
+      <?php
+        $atisPorPlaza = [];
+        foreach ($atis as $ati) {
+          $atisPorPlaza[(int) $ati['plaza_id']][] = $ati;
+        }
+      ?>
+      <div class="mb-3 ati-picker">
+        <label class="form-label"><strong>¿Qué ATI te atendió?</strong></label>
+        <p class="ati-aviso" data-ati-aviso>Primero elige tu plaza.</p>
+        <?php foreach ($plazas as $pl): $plId = (int) $pl['id']; $atisDePlaza = $atisPorPlaza[$plId] ?? []; ?>
+          <div class="ati-grid" data-ati-plaza="<?= $plId ?>" hidden>
+            <?php if (!$atisDePlaza): ?>
+              <p class="ati-aviso">No hay ningún ATI asignado a esta plaza todavía.</p>
+            <?php endif; ?>
+            <?php foreach ($atisDePlaza as $ati): $inicial = mb_strtoupper(mb_substr($ati['nombre_completo'] ?: '?', 0, 1)); ?>
+              <label class="ati-card">
+                <input type="radio" name="ati_atendio_id" value="<?= (int) $ati['id'] ?>" required>
+                <?php if (!empty($ati['foto_perfil'])): ?>
+                  <img class="user-avatar" src="<?= BASE_URL ?>/<?= htmlspecialchars($ati['foto_perfil']) ?>" alt="">
+                <?php else: ?>
+                  <span class="user-avatar user-avatar--ph"><?= htmlspecialchars($inicial) ?></span>
+                <?php endif; ?>
+                <span class="ati-nombre"><?= htmlspecialchars($ati['nombre_completo']) ?></span>
+              </label>
+            <?php endforeach; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
+
       <?php foreach ($preguntas as $p): ?>
         <fieldset class="pregunta">
           <legend style="font-size:1rem;font-weight:600"><?= htmlspecialchars($p['texto']) ?></legend>
@@ -95,6 +132,34 @@
 
       <button class="btn btn-primary w-100" type="submit">Enviar respuesta</button>
     </form>
+    <script>
+      (function () {
+        var selectPlaza = document.getElementById('plaza_id');
+        var grupos = document.querySelectorAll('[data-ati-plaza]');
+        var aviso = document.querySelector('[data-ati-aviso]');
+
+        function mostrarGrupo() {
+          var plazaId = selectPlaza.value;
+          var hayGrupo = false;
+          grupos.forEach(function (grupo) {
+            var esElegido = grupo.getAttribute('data-ati-plaza') === plazaId;
+            grupo.hidden = !esElegido;
+            if (!esElegido) {
+              // Limpia cualquier radio marcado en un grupo que ya no se ve:
+              // "hidden" no lo desmarca, y si se queda checked se manda
+              // igual al enviar el formulario.
+              grupo.querySelectorAll('input[type=radio]').forEach(function (r) { r.checked = false; });
+            } else {
+              hayGrupo = true;
+            }
+          });
+          if (aviso) { aviso.hidden = hayGrupo; }
+        }
+
+        selectPlaza.addEventListener('change', mostrarGrupo);
+        mostrarGrupo();
+      })();
+    </script>
   <?php endif; ?>
 </main>
 </body>

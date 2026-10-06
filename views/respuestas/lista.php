@@ -12,6 +12,8 @@ foreach ($filas as $fila) {
       'tienda' => $fila['tienda'] ?? '',
       'area' => $fila['administracion'] ?? '',
       'plaza' => $fila['plaza'] ?? '',
+      'ati_atendio' => $fila['ati_atendio'] ?? '',
+      'ati_atendio_foto' => $fila['ati_atendio_foto'] ?? '',
       'usuario' => $fila['usuario'] ?? '(usuario eliminado)',
       'comentario' => $fila['comentario'] ?? '',
       'respuestas' => [],
@@ -61,6 +63,16 @@ foreach ($filas as $fila) {
               <strong><?= e($encuesta['area'] ?: 'Sin área') ?></strong>
               <span>Folio <?= e($encuesta['folio']) ?> &middot; <?= e($encuesta['plaza'] ?: 'Sin plaza') ?> &middot; <?= e($encuesta['fecha']) ?></span>
             </div>
+            <?php if ($encuesta['ati_atendio']): ?>
+              <div class="survey-ati" title="ATI que atendió">
+                <?php if ($encuesta['ati_atendio_foto']): ?>
+                  <img class="user-avatar" src="<?= BASE_URL ?>/<?= e($encuesta['ati_atendio_foto']) ?>" alt="">
+                <?php else: ?>
+                  <span class="user-avatar user-avatar--ph"><?= e(mb_strtoupper(mb_substr($encuesta['ati_atendio'], 0, 1))) ?></span>
+                <?php endif; ?>
+                <span><?= e($encuesta['ati_atendio']) ?></span>
+              </div>
+            <?php endif; ?>
             <form method="POST" action="<?= BASE_URL ?>/respuestas/eliminar" class="inline-form"
                   onsubmit="return confirm('¿Borrar esta respuesta? No se puede deshacer.')">
               <?= Csrf::campo() ?>

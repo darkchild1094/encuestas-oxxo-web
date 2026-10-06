@@ -495,6 +495,9 @@ body.is-loading .page-shell { opacity: .6; transition: opacity .15s ease; }
 .survey-header strong { font: 700 15px 'Space Grotesk', sans-serif; }
 .survey-header span { color: var(--muted); font-size: 12px; }
 .survey-header .inline-form { flex: 0 0 auto; }
+.survey-header .survey-ati { flex-direction: row; align-items: center; gap: 8px; flex: 0 0 auto; }
+.survey-ati .user-avatar, .survey-ati .user-avatar--ph { width: 32px; height: 32px; font-size: 14px; }
+.survey-ati span:last-child { font-size: 12px; font-weight: 700; color: var(--ink); white-space: nowrap; }
 .answer-list { padding: 6px var(--sp-4); }
 .answer-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
 .answer-row:last-child { border-bottom: 0; }

@@ -258,6 +258,10 @@ class EstadisticasApiController
         $por = $_GET['por'] ?? 'area';
 
         if ($por === 'ati') {
+            // e.usuario_id: el ATI/WEBMASTER que contesto desde la app
+            // (se califica a si mismo). e.ati_atendio_id: el ATI que el
+            // formulario publico (anonimo, usuario_id NULL) dice que lo
+            // atendio. Un mismo ATI puede aparecer por los dos caminos.
             $sql = "
                 SELECT
                     u.id as pregunta_id,
@@ -265,7 +269,7 @@ class EstadisticasApiController
                     AVG(rd.calificacion) as promedio,
                     COUNT(DISTINCT e.id) as total_encuestas
                 FROM encuesta e
-                JOIN usuario u ON u.id = e.usuario_id
+                JOIN usuario u ON u.id = COALESCE(e.usuario_id, e.ati_atendio_id)
                 JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
                 WHERE e.administracion_id IS NOT NULL
             ";
