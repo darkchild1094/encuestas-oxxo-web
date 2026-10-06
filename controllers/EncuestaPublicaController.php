@@ -111,7 +111,7 @@ class EncuestaPublicaController
         // plaza no tiene ningun ATI dado de alta, se permite dejarlo sin
         // elegir -- no hay de donde escoger).
         $stmt = $pdo->prepare("
-            SELECT id FROM usuario u
+            SELECT u.id FROM usuario u
             JOIN rol r ON r.id = u.rol_id
             WHERE r.nombre = 'ATI' AND u.plaza_id = :plaza
         ");
