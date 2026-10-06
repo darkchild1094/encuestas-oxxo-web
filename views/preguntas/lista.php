@@ -12,6 +12,7 @@
 <div class="card border-0 shadow-sm p-3 mb-4">
   <p class="mb-2">Enlace del cuestionario web publico (sin login) para contestar la encuesta de oficina en remoto:</p>
   <?= enlace_copiable(url_absoluta('/encuesta-oficina')) ?>
+  <?= codigo_qr(url_absoluta('/encuesta-oficina'), 'qr-encuesta-oficina-preguntas') ?>
 </div>
 <?php endif; ?>
 

@@ -42,6 +42,23 @@ if (!function_exists('enlace_copiable')) {
     }
 }
 
+if (!function_exists('codigo_qr')) {
+    /**
+     * QR del enlace $url, generado en el navegador con qrcodejs (CDN ya
+     * permitido por la CSP del panel, ver src/Http.php) -- sin pegarle a
+     * ningun servicio externo de imagenes, que la CSP (img-src 'self'
+     * data:) bloquearia. Pensado para ir junto a enlace_copiable() del
+     * mismo enlace; $id debe ser unico si se usa mas de una vez por pagina.
+     */
+    function codigo_qr(string $url, string $id = 'qr-codigo'): string
+    {
+        return '<div id="' . e($id) . '" class="qr-codigo" aria-label="Codigo QR del enlace"></div>'
+            . '<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>'
+            . '<script>new QRCode(document.getElementById(' . json_encode($id) . '), '
+            . '{ text: ' . json_encode($url, JSON_UNESCAPED_SLASHES) . ', width: 120, height: 120 });</script>';
+    }
+}
+
 if (!function_exists('nav_activo')) {
     /** Devuelve ' active' + aria si $ruta es la pagina actual. */
     function nav_activo(string $ruta): string

@@ -546,3 +546,6 @@ body.is-loading .page-shell { opacity: .6; transition: opacity .15s ease; }
 .login-form .form-control { min-height: 46px; }
 .login-form .btn { min-height: 48px; font-size: 14px; }
 .login-box .alert, .error { margin-bottom: 1rem; padding: 11px 14px; border-radius: 8px; font-size: 13px; background: #fde5e2; color: #9b321f; }
+
+/* ---------- QR de enlaces compartibles (ver codigo_qr() en _ui.php) ---------- */
+.qr-codigo { display: inline-block; margin-top: var(--sp-3); padding: 10px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm); line-height: 0; }
