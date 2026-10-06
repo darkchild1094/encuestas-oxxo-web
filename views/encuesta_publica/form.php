@@ -46,8 +46,7 @@
     </div>
   <?php else: ?>
     <div class="login-heading text-center mb-3">
-      <p class="eyebrow">Encuesta de oficina</p>
-      <h1><?= htmlspecialchars($cuestionario['nombre']) ?></h1>
+      <p class="eyebrow">Encuesta de satisfacción</p>
       <p class="text-muted">Califica de 1 a 10, donde 1 es muy malo y 10 es excelente.</p>
     </div>
 
