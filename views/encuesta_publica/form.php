@@ -82,15 +82,23 @@
       </div>
 
       <?php
+        // Los de plaza_id NULL (ej. CoordinadorTI, alcance regional) se
+        // agregan a TODAS las plazas en vez de a una sola -- ver la
+        // consulta en EncuestaPublicaController::mostrar().
         $atisPorPlaza = [];
+        $atisRegionales = [];
         foreach ($atis as $ati) {
-          $atisPorPlaza[(int) $ati['plaza_id']][] = $ati;
+          if ($ati['plaza_id'] === null) {
+            $atisRegionales[] = $ati;
+          } else {
+            $atisPorPlaza[(int) $ati['plaza_id']][] = $ati;
+          }
         }
       ?>
       <div class="mb-3 ati-picker">
         <label class="form-label"><strong>¿Qué ATI te atendió?</strong></label>
         <p class="ati-aviso" data-ati-aviso>Primero elige tu plaza.</p>
-        <?php foreach ($plazas as $pl): $plId = (int) $pl['id']; $atisDePlaza = $atisPorPlaza[$plId] ?? []; ?>
+        <?php foreach ($plazas as $pl): $plId = (int) $pl['id']; $atisDePlaza = array_merge($atisPorPlaza[$plId] ?? [], $atisRegionales); ?>
           <div class="ati-grid" data-ati-plaza="<?= $plId ?>" hidden>
             <?php if (!$atisDePlaza): ?>
               <p class="ati-aviso">No hay ningún ATI asignado a esta plaza todavía.</p>

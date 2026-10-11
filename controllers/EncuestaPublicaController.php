@@ -46,11 +46,14 @@ class EncuestaPublicaController
         // filtra segun la plaza elegida (ver form.php). Sin login no se
         // le puede pedir esto al servidor sobre la marcha por plaza, y
         // son pocos ATIs en total, asi que se manda la lista completa.
+        // Ademas de los ATI de plaza, se incluyen los roles de alcance
+        // regional (plaza_id NULL, ej. CoordinadorTI) con contesta_oficina
+        // -- form.php los agrega a TODAS las plazas, no solo a una.
         $atis = $pdo->query("
             SELECT u.id, u.nombre_completo, u.foto_perfil, u.plaza_id
             FROM usuario u
             JOIN rol r ON r.id = u.rol_id
-            WHERE r.nombre = 'ATI'
+            WHERE r.nombre = 'ATI' OR (u.plaza_id IS NULL AND r.contesta_oficina = 1)
             ORDER BY u.nombre_completo
         ")->fetchAll();
 
@@ -107,13 +110,15 @@ class EncuestaPublicaController
             $this->rebotar('Selecciona a que plaza perteneces.');
         }
 
-        // El ATI elegido debe pertenecer de verdad a esa plaza (si la
-        // plaza no tiene ningun ATI dado de alta, se permite dejarlo sin
-        // elegir -- no hay de donde escoger).
+        // El ATI elegido debe pertenecer de verdad a esa plaza, o ser de
+        // alcance regional (plaza_id NULL, ej. CoordinadorTI: aplica a
+        // cualquier plaza). Si la plaza no tiene ningun ATI/coordinador
+        // dado de alta, se permite dejarlo sin elegir -- no hay de donde.
         $stmt = $pdo->prepare("
             SELECT u.id FROM usuario u
             JOIN rol r ON r.id = u.rol_id
-            WHERE r.nombre = 'ATI' AND u.plaza_id = :plaza
+            WHERE (r.nombre = 'ATI' AND u.plaza_id = :plaza)
+               OR (u.plaza_id IS NULL AND r.contesta_oficina = 1)
         ");
         $stmt->execute(['plaza' => $plazaId]);
         $atisDePlaza = $stmt->fetchAll(PDO::FETCH_COLUMN);
