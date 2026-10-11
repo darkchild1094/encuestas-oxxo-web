@@ -42,18 +42,15 @@ class EncuestaPublicaController
             SELECT id, nombre FROM plaza ORDER BY nombre
         ')->fetchAll();
 
-        // ATIs de todas las plazas, para el selector con foto que el JS
-        // filtra segun la plaza elegida (ver form.php). Sin login no se
-        // le puede pedir esto al servidor sobre la marcha por plaza, y
-        // son pocos ATIs en total, asi que se manda la lista completa.
-        // Ademas de los ATI de plaza, se incluyen los roles de alcance
-        // regional (plaza_id NULL, ej. CoordinadorTI) con contesta_oficina
-        // -- form.php los agrega a TODAS las plazas, no solo a una.
+        // TODOS los ATI y CoordinadorTI, sin importar su plaza: para el
+        // selector de "que ATI te atendio" se muestran siempre completos,
+        // cualquiera puede haber atendido a cualquiera sin importar la
+        // plaza que elija el que responde. Son pocos en total.
         $atis = $pdo->query("
-            SELECT u.id, u.nombre_completo, u.foto_perfil, u.plaza_id
+            SELECT u.id, u.nombre_completo, u.foto_perfil
             FROM usuario u
             JOIN rol r ON r.id = u.rol_id
-            WHERE r.nombre = 'ATI' OR (u.plaza_id IS NULL AND r.contesta_oficina = 1)
+            WHERE r.nombre IN ('ATI', 'CoordinadorTI')
             ORDER BY u.nombre_completo
         ")->fetchAll();
 
@@ -110,24 +107,20 @@ class EncuestaPublicaController
             $this->rebotar('Selecciona a que plaza perteneces.');
         }
 
-        // El ATI elegido debe pertenecer de verdad a esa plaza, o ser de
-        // alcance regional (plaza_id NULL, ej. CoordinadorTI: aplica a
-        // cualquier plaza). Si la plaza no tiene ningun ATI/coordinador
-        // dado de alta, se permite dejarlo sin elegir -- no hay de donde.
-        $stmt = $pdo->prepare("
+        // El ATI elegido debe ser un ATI o CoordinadorTI de verdad, sin
+        // importar su plaza (cualquiera puede haber atendido a cualquiera).
+        // Si no hay ninguno dado de alta, se permite dejarlo sin elegir.
+        $atisValidos = $pdo->query("
             SELECT u.id FROM usuario u
             JOIN rol r ON r.id = u.rol_id
-            WHERE (r.nombre = 'ATI' AND u.plaza_id = :plaza)
-               OR (u.plaza_id IS NULL AND r.contesta_oficina = 1)
-        ");
-        $stmt->execute(['plaza' => $plazaId]);
-        $atisDePlaza = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            WHERE r.nombre IN ('ATI', 'CoordinadorTI')
+        ")->fetchAll(PDO::FETCH_COLUMN);
 
         $atiAtendioId = (int) ($_POST['ati_atendio_id'] ?? 0);
-        if ($atisDePlaza && !in_array($atiAtendioId, array_map('intval', $atisDePlaza), true)) {
+        if ($atisValidos && !in_array($atiAtendioId, array_map('intval', $atisValidos), true)) {
             $this->rebotar('Selecciona que ATI te atendio.');
         }
-        $atiAtendioId = $atisDePlaza ? $atiAtendioId : null;
+        $atiAtendioId = $atisValidos ? $atiAtendioId : null;
 
         $stmt = $pdo->prepare('
             SELECT id FROM pregunta

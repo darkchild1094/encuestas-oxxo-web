@@ -81,41 +81,24 @@
         </select>
       </div>
 
-      <?php
-        // Los de plaza_id NULL (ej. CoordinadorTI, alcance regional) se
-        // agregan a TODAS las plazas en vez de a una sola -- ver la
-        // consulta en EncuestaPublicaController::mostrar().
-        $atisPorPlaza = [];
-        $atisRegionales = [];
-        foreach ($atis as $ati) {
-          if ($ati['plaza_id'] === null) {
-            $atisRegionales[] = $ati;
-          } else {
-            $atisPorPlaza[(int) $ati['plaza_id']][] = $ati;
-          }
-        }
-      ?>
       <div class="mb-3 ati-picker">
         <label class="form-label"><strong>¿Qué ATI te atendió?</strong></label>
-        <p class="ati-aviso" data-ati-aviso>Primero elige tu plaza.</p>
-        <?php foreach ($plazas as $pl): $plId = (int) $pl['id']; $atisDePlaza = array_merge($atisPorPlaza[$plId] ?? [], $atisRegionales); ?>
-          <div class="ati-grid" data-ati-plaza="<?= $plId ?>" hidden>
-            <?php if (!$atisDePlaza): ?>
-              <p class="ati-aviso">No hay ningún ATI asignado a esta plaza todavía.</p>
-            <?php endif; ?>
-            <?php foreach ($atisDePlaza as $ati): $inicial = mb_strtoupper(mb_substr($ati['nombre_completo'] ?: '?', 0, 1)); ?>
-              <label class="ati-card">
-                <input type="radio" name="ati_atendio_id" value="<?= (int) $ati['id'] ?>" required>
-                <?php if (!empty($ati['foto_perfil'])): ?>
-                  <img class="user-avatar" src="<?= BASE_URL ?>/<?= htmlspecialchars($ati['foto_perfil']) ?>" alt="">
-                <?php else: ?>
-                  <span class="user-avatar user-avatar--ph"><?= htmlspecialchars($inicial) ?></span>
-                <?php endif; ?>
-                <span class="ati-nombre"><?= htmlspecialchars($ati['nombre_completo']) ?></span>
-              </label>
-            <?php endforeach; ?>
-          </div>
-        <?php endforeach; ?>
+        <?php if (!$atis): ?>
+          <p class="ati-aviso">No hay ningún ATI dado de alta todavía.</p>
+        <?php endif; ?>
+        <div class="ati-grid">
+          <?php foreach ($atis as $ati): $inicial = mb_strtoupper(mb_substr($ati['nombre_completo'] ?: '?', 0, 1)); ?>
+            <label class="ati-card">
+              <input type="radio" name="ati_atendio_id" value="<?= (int) $ati['id'] ?>" required>
+              <?php if (!empty($ati['foto_perfil'])): ?>
+                <img class="user-avatar" src="<?= BASE_URL ?>/<?= htmlspecialchars($ati['foto_perfil']) ?>" alt="">
+              <?php else: ?>
+                <span class="user-avatar user-avatar--ph"><?= htmlspecialchars($inicial) ?></span>
+              <?php endif; ?>
+              <span class="ati-nombre"><?= htmlspecialchars($ati['nombre_completo']) ?></span>
+            </label>
+          <?php endforeach; ?>
+        </div>
       </div>
 
       <?php foreach ($preguntas as $p): ?>
@@ -139,34 +122,6 @@
 
       <button class="btn btn-primary w-100" type="submit">Enviar respuesta</button>
     </form>
-    <script>
-      (function () {
-        var selectPlaza = document.getElementById('plaza_id');
-        var grupos = document.querySelectorAll('[data-ati-plaza]');
-        var aviso = document.querySelector('[data-ati-aviso]');
-
-        function mostrarGrupo() {
-          var plazaId = selectPlaza.value;
-          var hayGrupo = false;
-          grupos.forEach(function (grupo) {
-            var esElegido = grupo.getAttribute('data-ati-plaza') === plazaId;
-            grupo.hidden = !esElegido;
-            if (!esElegido) {
-              // Limpia cualquier radio marcado en un grupo que ya no se ve:
-              // "hidden" no lo desmarca, y si se queda checked se manda
-              // igual al enviar el formulario.
-              grupo.querySelectorAll('input[type=radio]').forEach(function (r) { r.checked = false; });
-            } else {
-              hayGrupo = true;
-            }
-          });
-          if (aviso) { aviso.hidden = hayGrupo; }
-        }
-
-        selectPlaza.addEventListener('change', mostrarGrupo);
-        mostrarGrupo();
-      })();
-    </script>
   <?php endif; ?>
 </main>
 </body>
