@@ -142,6 +142,20 @@ class EncuestaPublicaController
         }
         $atiAtendioId = $atisValidos ? $atiAtendioId : null;
 
+        // El CoordinadorTI es de alcance regional: si fue el que atendio,
+        // la respuesta siempre cuenta para "Region Tamaulipas" en las
+        // estadisticas por centro de trabajo, sin importar cual haya
+        // elegido quien responde.
+        if ($atiAtendioId) {
+            $stmt = $pdo->prepare('
+                SELECT r.nombre FROM usuario u JOIN rol r ON r.id = u.rol_id WHERE u.id = :id
+            ');
+            $stmt->execute(['id' => $atiAtendioId]);
+            if ($stmt->fetchColumn() === 'CoordinadorTI') {
+                $plazaId = null;
+            }
+        }
+
         $stmt = $pdo->prepare('
             SELECT id FROM pregunta
             WHERE cuestionario_id = :c AND activo = 1
