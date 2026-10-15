@@ -42,12 +42,12 @@ class EncuestaPublicaController
             SELECT id, nombre FROM plaza ORDER BY nombre
         ')->fetchAll();
 
-        // TODOS los ATI y CoordinadorTI, sin importar su plaza: para el
-        // selector de "que ATI te atendio" se muestran siempre completos,
-        // cualquiera puede haber atendido a cualquiera sin importar la
-        // plaza que elija el que responde. Son pocos en total.
+        // ATI y CoordinadorTI para el selector de "que ATI te atendio".
+        // form.php agrupa: cada plaza muestra sus propios ATI + todos los
+        // CoordinadorTI (plaza_id NULL, alcance regional); la opcion extra
+        // "Region Tamaulipas" del centro de trabajo muestra a TODOS.
         $atis = $pdo->query("
-            SELECT u.id, u.nombre_completo, u.foto_perfil
+            SELECT u.id, u.nombre_completo, u.foto_perfil, u.plaza_id
             FROM usuario u
             JOIN rol r ON r.id = u.rol_id
             WHERE r.nombre IN ('ATI', 'CoordinadorTI')
@@ -100,21 +100,41 @@ class EncuestaPublicaController
             $this->rebotar('Selecciona un area valida.');
         }
 
-        $plazaId = (int) ($_POST['plaza_id'] ?? 0);
-        $stmt = $pdo->prepare('SELECT id FROM plaza WHERE id = :id');
-        $stmt->execute(['id' => $plazaId]);
-        if (!$stmt->fetch()) {
-            $this->rebotar('Selecciona a que plaza perteneces.');
+        // "region" (Region Tamaulipas, opcion extra del centro de trabajo)
+        // significa alcance regional, sin plaza especifica -- igual que un
+        // CoordinadorTI, se guarda como plaza_id NULL.
+        $plazaRaw = trim((string) ($_POST['plaza_id'] ?? ''));
+        if ($plazaRaw === 'region') {
+            $plazaId = null;
+        } else {
+            $plazaId = (int) $plazaRaw;
+            $stmt = $pdo->prepare('SELECT id FROM plaza WHERE id = :id');
+            $stmt->execute(['id' => $plazaId]);
+            if (!$stmt->fetch()) {
+                $this->rebotar('Selecciona tu centro de trabajo.');
+            }
         }
 
-        // El ATI elegido debe ser un ATI o CoordinadorTI de verdad, sin
-        // importar su plaza (cualquiera puede haber atendido a cualquiera).
-        // Si no hay ninguno dado de alta, se permite dejarlo sin elegir.
-        $atisValidos = $pdo->query("
-            SELECT u.id FROM usuario u
-            JOIN rol r ON r.id = u.rol_id
-            WHERE r.nombre IN ('ATI', 'CoordinadorTI')
-        ")->fetchAll(PDO::FETCH_COLUMN);
+        // El ATI elegido debe ser un ATI de esa misma plaza, o un
+        // CoordinadorTI (alcance regional, aplica a cualquiera). Si se
+        // eligio "Region Tamaulipas" (plaza_id NULL), vale cualquier
+        // ATI/CoordinadorTI. Si no hay ninguno dado de alta para el caso,
+        // se permite dejarlo sin elegir -- no hay de donde escoger.
+        if ($plazaId === null) {
+            $atisValidos = $pdo->query("
+                SELECT u.id FROM usuario u
+                JOIN rol r ON r.id = u.rol_id
+                WHERE r.nombre IN ('ATI', 'CoordinadorTI')
+            ")->fetchAll(PDO::FETCH_COLUMN);
+        } else {
+            $stmt = $pdo->prepare("
+                SELECT u.id FROM usuario u
+                JOIN rol r ON r.id = u.rol_id
+                WHERE (r.nombre = 'ATI' AND u.plaza_id = :plaza) OR r.nombre = 'CoordinadorTI'
+            ");
+            $stmt->execute(['plaza' => $plazaId]);
+            $atisValidos = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        }
 
         $atiAtendioId = (int) ($_POST['ati_atendio_id'] ?? 0);
         if ($atisValidos && !in_array($atiAtendioId, array_map('intval', $atisValidos), true)) {

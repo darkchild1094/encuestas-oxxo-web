@@ -9,12 +9,6 @@
   <style>
     .encuesta-publica{max-width:52rem;margin:2.5rem auto;padding:0 1.25rem}
     .encuesta-publica .pregunta{border:1px solid #e6e0da;border-radius:.65rem;padding:1rem 1.15rem;margin-bottom:1rem;background:#fff}
-    .encuesta-publica .escala{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.6rem}
-    .encuesta-publica .escala label{display:inline-flex;align-items:center;justify-content:center;min-width:2.4rem;padding:.4rem 0;border:1px solid #d0c8c0;border-radius:.4rem;cursor:pointer;font-weight:600}
-    .encuesta-publica .escala input{position:absolute;opacity:0;pointer-events:none}
-    .encuesta-publica .escala input:checked+span{}
-    .encuesta-publica .escala label:has(input:checked){background:#d70b16;color:#fff;border-color:#d70b16}
-    .encuesta-publica .escala label:focus-within{outline:2px solid #241213}
     .hp-field{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
     .ati-picker .ati-aviso{color:#6b6260;font-size:.85rem;margin:.3rem 0 0}
     .ati-grid{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:.5rem}
@@ -24,6 +18,20 @@
     .ati-card span.ati-nombre{font-size:.75rem;font-weight:600;line-height:1.2}
     .ati-card:has(input:checked){border-color:#d70b16;background:#fde5e2}
     .ati-card:focus-within{outline:2px solid #241213}
+    /* Caritas NPS: mismos colores/forma que NpsFaceSelector.kt de la app Android
+       (1-6 rojo/triste, 7-8 amarillo/neutral, 9-10 verde/feliz). */
+    .escala{display:flex;gap:2px;margin-top:.6rem}
+    .carita-nps{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;cursor:pointer}
+    .carita-nps input{position:absolute;opacity:0;pointer-events:none}
+    .carita-nps svg{width:100%;max-width:2.6rem;aspect-ratio:1}
+    .carita-nps .carita-fondo{fill:var(--c);fill-opacity:.35;transition:fill-opacity .15s ease}
+    .carita-nps:has(input:checked) .carita-fondo{fill-opacity:1}
+    .carita-nps .carita-numero{font-size:12px;font-weight:600;color:#6b6260}
+    .carita-nps:has(input:checked) .carita-numero{color:var(--c)}
+    .carita-nps:focus-within svg{outline:2px solid #241213;outline-offset:2px;border-radius:50%}
+    .carita-nps.detractor{--c:#DA3E64}
+    .carita-nps.pasivo{--c:#F5B913}
+    .carita-nps.promotor{--c:#3AAE7A}
   </style>
 </head>
 <body class="login-page">
@@ -62,9 +70,9 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label" for="administracion_id"><strong>Área administrativa</strong></label>
+        <label class="form-label" for="administracion_id"><strong>Selecciona tu departamento</strong></label>
         <select class="form-select" id="administracion_id" name="administracion_id" required>
-          <option value="">Selecciona un área…</option>
+          <option value="">Elige tu departamento…</option>
           <?php foreach ($areas as $a): ?>
             <option value="<?= (int) $a['id'] ?>"><?= htmlspecialchars($a['nombre']) ?></option>
           <?php endforeach; ?>
@@ -72,43 +80,83 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label" for="plaza_id"><strong>Plaza</strong></label>
+        <label class="form-label" for="plaza_id"><strong>Selecciona tu centro de trabajo</strong></label>
         <select class="form-select" id="plaza_id" name="plaza_id" required>
-          <option value="">Selecciona tu plaza…</option>
+          <option value="">Elige tu centro de trabajo…</option>
           <?php foreach ($plazas as $pl): ?>
             <option value="<?= (int) $pl['id'] ?>"><?= htmlspecialchars($pl['nombre']) ?></option>
           <?php endforeach; ?>
+          <option value="region">Región Tamaulipas</option>
         </select>
       </div>
 
+      <?php
+        // Cada plaza muestra sus ATI + todos los CoordinadorTI (alcance
+        // regional, plaza_id NULL). La opcion "Region Tamaulipas" del
+        // centro de trabajo muestra a TODOS (ATI de cualquier plaza +
+        // CoordinadorTI) -- ver EncuestaPublicaController::mostrar().
+        $coordinadores = array_values(array_filter($atis, fn($a) => $a['plaza_id'] === null));
+        $atisPorPlaza = [];
+        foreach ($atis as $ati) {
+          if ($ati['plaza_id'] !== null) {
+            $atisPorPlaza[(int) $ati['plaza_id']][] = $ati;
+          }
+        }
+        $gruposAti = [];
+        foreach ($plazas as $pl) {
+          $plId = (int) $pl['id'];
+          $gruposAti[(string) $plId] = array_merge($atisPorPlaza[$plId] ?? [], $coordinadores);
+        }
+        $gruposAti['region'] = $atis; // todos, sin filtrar
+      ?>
       <div class="mb-3 ati-picker">
         <label class="form-label"><strong>¿Qué ATI te atendió?</strong></label>
-        <?php if (!$atis): ?>
-          <p class="ati-aviso">No hay ningún ATI dado de alta todavía.</p>
-        <?php endif; ?>
-        <div class="ati-grid">
-          <?php foreach ($atis as $ati): $inicial = mb_strtoupper(mb_substr($ati['nombre_completo'] ?: '?', 0, 1)); ?>
-            <label class="ati-card">
-              <input type="radio" name="ati_atendio_id" value="<?= (int) $ati['id'] ?>" required>
-              <?php if (!empty($ati['foto_perfil'])): ?>
-                <img class="user-avatar" src="<?= BASE_URL ?>/<?= htmlspecialchars($ati['foto_perfil']) ?>" alt="">
-              <?php else: ?>
-                <span class="user-avatar user-avatar--ph"><?= htmlspecialchars($inicial) ?></span>
-              <?php endif; ?>
-              <span class="ati-nombre"><?= htmlspecialchars($ati['nombre_completo']) ?></span>
-            </label>
-          <?php endforeach; ?>
-        </div>
+        <p class="ati-aviso" data-ati-aviso>Primero elige tu centro de trabajo.</p>
+        <?php foreach ($gruposAti as $claveGrupo => $atisDelGrupo): ?>
+          <div class="ati-grid" data-ati-plaza="<?= htmlspecialchars($claveGrupo) ?>" hidden>
+            <?php if (!$atisDelGrupo): ?>
+              <p class="ati-aviso">No hay ningún ATI asignado todavía.</p>
+            <?php endif; ?>
+            <?php foreach ($atisDelGrupo as $ati): $inicial = mb_strtoupper(mb_substr($ati['nombre_completo'] ?: '?', 0, 1)); ?>
+              <label class="ati-card">
+                <input type="radio" name="ati_atendio_id" value="<?= (int) $ati['id'] ?>" required>
+                <?php if (!empty($ati['foto_perfil'])): ?>
+                  <img class="user-avatar" src="<?= BASE_URL ?>/<?= htmlspecialchars($ati['foto_perfil']) ?>" alt="">
+                <?php else: ?>
+                  <span class="user-avatar user-avatar--ph"><?= htmlspecialchars($inicial) ?></span>
+                <?php endif; ?>
+                <span class="ati-nombre"><?= htmlspecialchars($ati['nombre_completo']) ?></span>
+              </label>
+            <?php endforeach; ?>
+          </div>
+        <?php endforeach; ?>
       </div>
 
+      <?php
+        // Caritas NPS identicas a NpsFaceSelector.kt de la app Android:
+        // 1-6 triste/rojo, 7-8 neutral/amarillo, 9-10 feliz/verde. El
+        // path de la boca es la misma curva (control point arriba/recto/
+        // abajo) que dibuja el Canvas de Compose, pasado a SVG.
+        $bocaPorNumero = static function (int $n): array {
+          if ($n <= 6) { return ['detractor', 'M28,62 Q50,50 72,62']; }
+          if ($n <= 8) { return ['pasivo', 'M28,62 Q50,62 72,62']; }
+          return ['promotor', 'M28,62 Q50,74 72,62'];
+        };
+      ?>
       <?php foreach ($preguntas as $p): ?>
         <fieldset class="pregunta">
           <legend style="font-size:1rem;font-weight:600"><?= htmlspecialchars($p['texto']) ?></legend>
           <div class="escala" role="radiogroup" aria-label="<?= htmlspecialchars($p['texto']) ?>">
-            <?php for ($i = 1; $i <= 10; $i++): ?>
-              <label>
+            <?php for ($i = 1; $i <= 10; $i++): [$clase, $boca] = $bocaPorNumero($i); ?>
+              <label class="carita-nps <?= $clase ?>">
                 <input type="radio" name="calificacion[<?= (int) $p['id'] ?>]" value="<?= $i ?>" required>
-                <span><?= $i ?></span>
+                <svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+                  <circle class="carita-fondo" cx="50" cy="50" r="48"/>
+                  <circle cx="28" cy="40" r="4.5" fill="#fff"/>
+                  <circle cx="72" cy="40" r="4.5" fill="#fff"/>
+                  <path d="<?= $boca ?>" stroke="#fff" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+                </svg>
+                <span class="carita-numero"><?= $i ?></span>
               </label>
             <?php endfor; ?>
           </div>
@@ -122,6 +170,34 @@
 
       <button class="btn btn-primary w-100" type="submit">Enviar respuesta</button>
     </form>
+    <script>
+      (function () {
+        var selectPlaza = document.getElementById('plaza_id');
+        var grupos = document.querySelectorAll('[data-ati-plaza]');
+        var aviso = document.querySelector('[data-ati-aviso]');
+
+        function mostrarGrupo() {
+          var valor = selectPlaza.value;
+          var hayGrupo = false;
+          grupos.forEach(function (grupo) {
+            var esElegido = grupo.getAttribute('data-ati-plaza') === valor;
+            grupo.hidden = !esElegido;
+            if (!esElegido) {
+              // Limpia cualquier radio marcado en un grupo que ya no se ve:
+              // "hidden" no lo desmarca, y si se queda checked se manda
+              // igual al enviar el formulario.
+              grupo.querySelectorAll('input[type=radio]').forEach(function (r) { r.checked = false; });
+            } else {
+              hayGrupo = true;
+            }
+          });
+          if (aviso) { aviso.hidden = hayGrupo; }
+        }
+
+        selectPlaza.addEventListener('change', mostrarGrupo);
+        mostrarGrupo();
+      })();
+    </script>
   <?php endif; ?>
 </main>
 </body>
