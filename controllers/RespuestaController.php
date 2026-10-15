@@ -111,7 +111,7 @@ class RespuestaController
             SELECT
                 e.id AS encuesta_id, e.folio, e.fecha_creacion_local, e.comentario,
                 a.id AS administracion_id, a.nombre AS administracion,
-                pl.nombre AS plaza,
+                COALESCE(pl.nombre, "Región Tamaulipas") AS plaza,
                 atiu.nombre_completo AS ati_atendio, atiu.foto_perfil AS ati_atendio_foto,
                 preg.texto AS pregunta, rd.calificacion
             FROM encuesta e
@@ -249,7 +249,7 @@ class RespuestaController
             header('Content-Disposition: attachment; filename="respuestas_oficina_' . date('Y-m-d_His') . '.csv"');
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['Folio', 'Fecha', 'Area', 'Plaza', 'ATI que atendio', 'Pregunta', 'Calificacion', 'Comentario']);
+            fputcsv($out, ['Folio', 'Fecha', 'Departamento', 'Centro de trabajo', 'ATI que atendio', 'Pregunta', 'Calificacion', 'Comentario']);
             foreach ($filas as $f) {
                 fputcsv($out, [
                     $f['folio'] ?? '',

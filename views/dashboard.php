@@ -103,7 +103,7 @@ $npsTotal = max(1, (int) $nps['total']);
   <h2>Encuesta de oficina</h2>
   <span>
     <?= number_format($oficinaKpis['total_encuestas']) ?> encuesta<?= $oficinaKpis['total_encuestas'] === 1 ? '' : 's' ?>
-    &middot; <?= $oficinaKpis['areas'] ?> area<?= $oficinaKpis['areas'] === 1 ? '' : 's' ?>
+    &middot; <?= $oficinaKpis['areas'] ?> departamento<?= $oficinaKpis['areas'] === 1 ? '' : 's' ?>
     &middot; promedio <strong class="kpi-<?= clase_calificacion($oficinaKpis['promedio_general']) ?>"><?= number_format($oficinaKpis['promedio_general'], 1) ?>/10</strong>
   </span>
 </div>
@@ -113,7 +113,7 @@ $npsTotal = max(1, (int) $nps['total']);
 <?php else: ?>
 <div class="card-grid">
   <section class="panel">
-    <h2 class="panel-title">Oficina &mdash; por area</h2>
+    <h2 class="panel-title">Oficina &mdash; por departamento</h2>
     <?= barras_html(array_map(static fn($r) => [$r['nombre'], $r['promedio'], $r['total']], $oficinaPorArea)) ?>
   </section>
   <section class="panel">
@@ -122,7 +122,7 @@ $npsTotal = max(1, (int) $nps['total']);
   </section>
 </div>
 <section class="panel">
-  <h2 class="panel-title">Oficina &mdash; por plaza</h2>
+  <h2 class="panel-title">Oficina &mdash; por centro de trabajo</h2>
   <?= barras_html(array_map(static fn($r) => [$r['nombre'], $r['promedio'], $r['total']], $oficinaPorPlaza)) ?>
 </section>
 <?php endif; ?>

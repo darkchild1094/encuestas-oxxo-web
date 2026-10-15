@@ -317,11 +317,12 @@ final class MetricasRespuestas
     /** @return list<array{nombre:string, total:int, promedio:float}> */
     public function oficinaPorPlaza(): array
     {
-        // e.plaza_id: lo que elige el formulario publico. u.plaza_id:
+        // e.plaza_id: lo que elige el formulario publico -- incluye la
+        // opcion "Region Tamaulipas" (plaza_id NULL a proposito). u.plaza_id:
         // plaza fija del usuario logueado (app) cuando no hay e.plaza_id.
         ['sql' => $w, 'params' => $p] = $this->whereFechasOficina();
         return $this->oficinaFilas("
-            SELECT COALESCE(pl.nombre, '(sin plaza)') AS nombre,
+            SELECT COALESCE(pl.nombre, 'Región Tamaulipas') AS nombre,
                    COUNT(DISTINCT e.id) AS total,
                    AVG(rd.calificacion) AS promedio
             FROM encuesta e

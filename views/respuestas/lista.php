@@ -30,7 +30,7 @@ foreach ($filas as $fila) {
 <?php if ($ambito === 'oficina'): ?>
   <div class="page-heading">
     <div>
-      <p class="eyebrow">Todas las áreas administrativas</p>
+      <p class="eyebrow">Todos los departamentos</p>
       <h1>Respuestas de oficina</h1>
     </div>
   </div>
@@ -38,9 +38,9 @@ foreach ($filas as $fila) {
   <form method="GET" action="<?= BASE_URL ?>/respuestas" class="row g-3 align-items-end filter-bar">
     <input type="hidden" name="ambito" value="oficina">
     <div class="col-12 col-sm-6 col-lg-3">
-      <label class="form-label" for="administracion_id">Área</label>
+      <label class="form-label" for="administracion_id">Departamento</label>
       <select class="form-select" id="administracion_id" name="administracion_id">
-        <option value="">Todas</option>
+        <option value="">Todos</option>
         <?php foreach ($areas as $a): ?>
           <option value="<?= (int) $a['id'] ?>" <?= (($_GET['administracion_id'] ?? '') == $a['id']) ? 'selected' : '' ?>><?= e($a['nombre']) ?></option>
         <?php endforeach; ?>
@@ -60,8 +60,8 @@ foreach ($filas as $fila) {
         <article class="survey-card card border-0 shadow-sm">
           <header class="survey-header">
             <div>
-              <strong><?= e($encuesta['area'] ?: 'Sin área') ?></strong>
-              <span>Folio <?= e($encuesta['folio']) ?> &middot; <?= e($encuesta['plaza'] ?: 'Sin plaza') ?> &middot; <?= e($encuesta['fecha']) ?></span>
+              <strong><?= e($encuesta['area'] ?: 'Sin departamento') ?></strong>
+              <span>Folio <?= e($encuesta['folio']) ?> &middot; <?= e($encuesta['plaza']) ?> &middot; <?= e($encuesta['fecha']) ?></span>
             </div>
             <?php if ($encuesta['ati_atendio']): ?>
               <div class="survey-ati" title="ATI que atendió">

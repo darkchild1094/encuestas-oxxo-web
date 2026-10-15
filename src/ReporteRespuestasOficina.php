@@ -8,10 +8,12 @@ require_once __DIR__ . '/MiniZip.php';
 use Reportes\XlsxWriter;
 
 /**
- * Reporte .xlsx de la encuesta de OFICINA (areas administrativas). Es el
- * equivalente de ReporteRespuestas para el otro tipo de encuesta: no hay
- * tienda/region, el eje principal es `administracion`. Tres hojas: resumen
- * por area (con grafica), resumen por ATI que atendio, y el detalle crudo.
+ * Reporte .xlsx de la encuesta de OFICINA (departamentos / "administracion"
+ * en BD). Es el equivalente de ReporteRespuestas para el otro tipo de
+ * encuesta: no hay tienda/region, el eje principal es `administracion`.
+ * Cuatro hojas: resumen por departamento (con grafica), resumen por ATI
+ * que atendio, resumen por centro de trabajo (incluye "Region Tamaulipas",
+ * la opcion de alcance regional), y el detalle crudo.
  */
 class ReporteRespuestasOficina
 {
@@ -30,6 +32,7 @@ class ReporteRespuestasOficina
         $w = new XlsxWriter();
         $this->hojaResumen($w);
         $this->hojaResumenPorAti($w);
+        $this->hojaResumenPorPlaza($w);
         $this->hojaDetalle($w, $filasDetalle);
         return $w->generar();
     }
@@ -96,8 +99,8 @@ class ReporteRespuestasOficina
             ];
         }, $filas);
 
-        $idx = $w->agregarHoja('Resumen por area', [
-            ['titulo' => 'Area'],
+        $idx = $w->agregarHoja('Resumen por departamento', [
+            ['titulo' => 'Departamento'],
             ['titulo' => 'Total encuestas', 'formato' => 'entero'],
             ['titulo' => 'Promedio general', 'formato' => 'numero'],
             ['titulo' => '% Promotores', 'formato' => 'numero'],
@@ -106,7 +109,7 @@ class ReporteRespuestasOficina
         ], $datos);
 
         if ($datos) {
-            $w->agregarGraficaBarras($idx, 'Promedio general por area', 'Area', ['Promedio general'], 'Total encuestas');
+            $w->agregarGraficaBarras($idx, 'Promedio general por departamento', 'Departamento', ['Promedio general'], 'Total encuestas');
         }
     }
 
@@ -162,6 +165,61 @@ class ReporteRespuestasOficina
         }
     }
 
+    // e.plaza_id: centro de trabajo elegido al contestar el formulario
+    // publico -- incluye la opcion "Region Tamaulipas" (plaza_id NULL a
+    // proposito, alcance regional). u.plaza_id: plaza fija del usuario
+    // logueado (app) cuando no hay e.plaza_id. LEFT JOIN para que las de
+    // "Region Tamaulipas" salgan en su propio renglon en vez de perderse.
+    private function hojaResumenPorPlaza(XlsxWriter $w): void
+    {
+        [$whereSql, $params] = $this->whereBase();
+
+        $sql = "
+            SELECT COALESCE(pl.nombre, 'Región Tamaulipas') AS plaza,
+                   COUNT(DISTINCT e.id) AS total_encuestas,
+                   AVG(rd.calificacion) AS promedio_general,
+                   SUM(CASE WHEN rd.calificacion >= 9 THEN 1 ELSE 0 END) AS promotores,
+                   SUM(CASE WHEN rd.calificacion BETWEEN 7 AND 8 THEN 1 ELSE 0 END) AS pasivos,
+                   SUM(CASE WHEN rd.calificacion <= 6 THEN 1 ELSE 0 END) AS detractores,
+                   COUNT(rd.id) AS total_respuestas
+            FROM encuesta e
+            LEFT JOIN usuario u ON u.id = e.usuario_id
+            LEFT JOIN plaza pl ON pl.id = COALESCE(e.plaza_id, u.plaza_id)
+            JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
+            {$whereSql}
+            GROUP BY COALESCE(pl.id, 0)
+            ORDER BY plaza
+        ";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        $filas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $datos = array_map(function ($r) {
+            $tot = max(1, (int) $r['total_respuestas']);
+            return [
+                $r['plaza'],
+                (int) $r['total_encuestas'],
+                $this->redondear($r['promedio_general']),
+                $this->redondear((int) $r['promotores'] * 100 / $tot),
+                $this->redondear((int) $r['pasivos'] * 100 / $tot),
+                $this->redondear((int) $r['detractores'] * 100 / $tot),
+            ];
+        }, $filas);
+
+        $idx = $w->agregarHoja('Resumen por centro de trabajo', [
+            ['titulo' => 'Centro de trabajo'],
+            ['titulo' => 'Total encuestas', 'formato' => 'entero'],
+            ['titulo' => 'Promedio general', 'formato' => 'numero'],
+            ['titulo' => '% Promotores', 'formato' => 'numero'],
+            ['titulo' => '% Pasivos', 'formato' => 'numero'],
+            ['titulo' => '% Detractores', 'formato' => 'numero'],
+        ], $datos);
+
+        if ($datos) {
+            $w->agregarGraficaBarras($idx, 'Promedio general por centro de trabajo', 'Centro de trabajo', ['Promedio general'], 'Total encuestas');
+        }
+    }
+
     private function hojaDetalle(XlsxWriter $w, array $filasDetalle): void
     {
         $datos = array_map(fn($f) => [
@@ -178,8 +236,8 @@ class ReporteRespuestasOficina
         $w->agregarHoja('Detalle', [
             ['titulo' => 'Folio'],
             ['titulo' => 'Fecha'],
-            ['titulo' => 'Area'],
-            ['titulo' => 'Plaza'],
+            ['titulo' => 'Departamento'],
+            ['titulo' => 'Centro de trabajo'],
             ['titulo' => 'ATI que atendio'],
             ['titulo' => 'Pregunta'],
             ['titulo' => 'Calificacion', 'formato' => 'entero'],
