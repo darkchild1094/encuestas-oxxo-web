@@ -18,6 +18,19 @@ class RespuestaController
             || ($_SESSION['rol'] ?? '') === 'WEBMASTER';
     }
 
+    // Respuestas de OFICINA: son globales para toda la region, asi que
+    // (ademas de ve_resultados_tiendas) solo las ve/exporta/borra Rosa
+    // Ramirez (usuario 128). Tienda sigue abierto a cualquiera con el
+    // permiso, cada quien en su alcance de plaza de siempre.
+    private function soloRosaSiOficina(bool $esOficina): void
+    {
+        if ($esOficina && (int) ($_SESSION['usuario_id'] ?? 0) !== 128) {
+            http_response_code(403);
+            echo 'Las respuestas de oficina solo las ve Rosa Ramirez.';
+            exit;
+        }
+    }
+
     private function query(array $filtros): array
     {
         $sql = '
@@ -149,6 +162,7 @@ class RespuestaController
         $pdo = Database::conexion();
 
         $ambito = $this->ambitoDesdeGet();
+        $this->soloRosaSiOficina($ambito === 'oficina');
 
         if ($ambito === 'oficina') {
             $areas = $pdo->query('SELECT id, nombre FROM administracion ORDER BY nombre')->fetchAll();
@@ -201,6 +215,7 @@ class RespuestaController
     public function exportarExcel(): void
     {
         Auth::requierePermiso('ve_resultados_tiendas');
+        $this->soloRosaSiOficina($this->ambitoDesdeGet() === 'oficina');
 
         if ($this->ambitoDesdeGet() === 'oficina') {
             require_once __DIR__ . '/../src/ReporteRespuestasOficina.php';
@@ -242,6 +257,7 @@ class RespuestaController
     public function exportarCsv(): void
     {
         Auth::requierePermiso('ve_resultados_tiendas');
+        $this->soloRosaSiOficina($this->ambitoDesdeGet() === 'oficina');
 
         if ($this->ambitoDesdeGet() === 'oficina') {
             $filas = $this->queryOficina($this->filtrosOficinaDesdeGet());
@@ -316,7 +332,7 @@ class RespuestaController
         }
 
         $pdo = Database::conexion();
-        $stmt = $pdo->prepare('SELECT tienda_id FROM encuesta WHERE id = :id');
+        $stmt = $pdo->prepare('SELECT tienda_id, administracion_id FROM encuesta WHERE id = :id');
         $stmt->execute(['id' => $id]);
         $encuesta = $stmt->fetch();
 
@@ -325,6 +341,8 @@ class RespuestaController
             header('Location: ' . $destino);
             exit;
         }
+
+        $this->soloRosaSiOficina($encuesta['administracion_id'] !== null);
 
         if ($encuesta['tienda_id'] && !$this->veTodasLasPlazas()) {
             $stmt = $pdo->prepare('SELECT plaza_id FROM tienda WHERE id = :id');

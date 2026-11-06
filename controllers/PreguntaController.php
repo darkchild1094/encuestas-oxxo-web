@@ -3,15 +3,28 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../src/Auth.php';
 
-// ATI y webmaster entran aqui (gestiona_preguntas).
+// ATI y webmaster entran aqui (gestiona_preguntas) para las preguntas de
+// TIENDA, cada quien en su propia plaza. Las de OFICINA son un catalogo
+// unico y global para toda la region -- solo las administra Rosa Ramirez
+// (usuario 128), ver soloRosaSiOficina().
 class PreguntaController
 {
+    private function soloRosaSiOficina(bool $esOficina): void
+    {
+        if ($esOficina && (int) ($_SESSION['usuario_id'] ?? 0) !== 128) {
+            http_response_code(403);
+            echo 'Las preguntas de oficina solo las administra Rosa Ramirez.';
+            exit;
+        }
+    }
+
     public function index(): void
     {
         Auth::requierePermiso('gestiona_preguntas');
         $pdo = Database::conexion();
 
         $ambito = ($_GET['ambito'] ?? 'tiendas') === 'oficina' ? 'oficina' : 'tiendas';
+        $this->soloRosaSiOficina($ambito === 'oficina');
 
         $plazas = [];
         $plazaId = 0;
@@ -104,6 +117,7 @@ class PreguntaController
     public function crear(): void
     {
         Auth::requierePermiso('gestiona_preguntas');
+        $this->soloRosaSiOficina(($_POST['ambito'] ?? '') === 'oficina');
         $cuestionarioId = (int) ($_POST['cuestionario_id'] ?? 0);
         $texto = trim($_POST['texto'] ?? '');
         $orden = (int) ($_POST['orden'] ?? 0);
@@ -134,10 +148,26 @@ class PreguntaController
         return 'plaza_id=' . (int) ($_POST['plaza_id'] ?? 0);
     }
 
+    // true si la pregunta pertenece al cuestionario de oficina. Se checa
+    // contra la BD (no el 'ambito' del POST, que solo sirve para el
+    // redirect) para que no se pueda editar/borrar una de oficina
+    // mandando ambito=tiendas a mano.
+    private function esPreguntaDeOficina(int $preguntaId): bool
+    {
+        $stmt = Database::conexion()->prepare("
+            SELECT 1 FROM pregunta p
+            JOIN cuestionario c ON c.id = p.cuestionario_id
+            WHERE p.id = :id AND c.tipo = 'oficina'
+        ");
+        $stmt->execute(['id' => $preguntaId]);
+        return (bool) $stmt->fetchColumn();
+    }
+
     public function editar(): void
     {
         Auth::requierePermiso('gestiona_preguntas');
         $id = (int) ($_POST['id'] ?? 0);
+        $this->soloRosaSiOficina($this->esPreguntaDeOficina($id));
         $texto = trim($_POST['texto'] ?? '');
         $orden = (int) ($_POST['orden'] ?? 0);
 
@@ -153,6 +183,7 @@ class PreguntaController
     {
         Auth::requierePermiso('gestiona_preguntas');
         $id = (int) ($_POST['id'] ?? 0);
+        $this->soloRosaSiOficina($this->esPreguntaDeOficina($id));
 
         $pdo = Database::conexion();
 

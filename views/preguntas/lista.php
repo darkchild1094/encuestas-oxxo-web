@@ -5,7 +5,9 @@
 
 <nav class="ambito-toggle" aria-label="Tipo de encuesta">
   <a class="nav-link <?= $ambito === 'tiendas' ? 'active' : '' ?>" href="<?= BASE_URL ?>/preguntas?ambito=tiendas">Tiendas</a>
-  <a class="nav-link <?= $ambito === 'oficina' ? 'active' : '' ?>" href="<?= BASE_URL ?>/preguntas?ambito=oficina">Oficina</a>
+  <?php if ((int) ($_SESSION['usuario_id'] ?? 0) === 128): ?>
+    <a class="nav-link <?= $ambito === 'oficina' ? 'active' : '' ?>" href="<?= BASE_URL ?>/preguntas?ambito=oficina">Oficina</a>
+  <?php endif; ?>
 </nav>
 
 <?php if ($ambito === 'oficina'): ?>

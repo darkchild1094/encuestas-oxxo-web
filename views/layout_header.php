@@ -55,6 +55,8 @@ $ver = static function (string $rel): string {
         <?php endif; ?>
         <?php if (!empty($_SESSION['gestiona_usuarios'])): ?>
           <a class="nav-link<?= nav_activo('/usuarios') ?>" href="<?= BASE_URL ?>/usuarios"><i class="fa-solid fa-users" aria-hidden="true"></i> Usuarios</a>
+        <?php endif; ?>
+        <?php if ((int) ($_SESSION['usuario_id'] ?? 0) === 128): ?>
           <a class="nav-link<?= nav_activo('/administracion') ?>" href="<?= BASE_URL ?>/administracion"><i class="fa-solid fa-building" aria-hidden="true"></i> Areas</a>
         <?php endif; ?>
         <?php if ($rol === 'WEBMASTER'): ?>

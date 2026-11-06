@@ -81,9 +81,9 @@ class SyncApiController
 
         $stmtEncuesta = $pdo->prepare('
             INSERT IGNORE INTO encuesta
-                (id, usuario_id, tienda_id, administracion_id, cuestionario_id, folio, comentario, fecha_creacion_local, sincronizado, fecha_sincronizacion)
+                (id, usuario_id, tienda_id, administracion_id, plaza_id, ati_atendio_id, cuestionario_id, folio, comentario, fecha_creacion_local, sincronizado, fecha_sincronizacion)
             VALUES
-                (:id, :usuario_id, :tienda_id, :administracion_id, :cuestionario_id, :folio, :comentario, :fecha_creacion_local, 1, NOW())
+                (:id, :usuario_id, :tienda_id, :administracion_id, :plaza_id, :ati_atendio_id, :cuestionario_id, :folio, :comentario, :fecha_creacion_local, 1, NOW())
         ');
         $stmtRespuesta = $pdo->prepare('
             INSERT IGNORE INTO respuesta_detalle (id, encuesta_id, pregunta_id, calificacion)
@@ -110,6 +110,15 @@ class SyncApiController
                 ? (int) $e['tienda_id'] : null;
             $esOficina = $adminId !== null;
 
+            // Centro de trabajo (plaza_id, igual que el formulario web --
+            // NULL a proposito es "Region Tamaulipas") y ATI que atendio.
+            // Solo aplican a la encuesta de oficina; en la de tienda van
+            // siempre NULL.
+            $plazaId = isset($e['plaza_id']) && $e['plaza_id'] !== null && $e['plaza_id'] !== ''
+                ? (int) $e['plaza_id'] : null;
+            $atiAtendioId = isset($e['ati_atendio_id']) && $e['ati_atendio_id'] !== null && $e['ati_atendio_id'] !== ''
+                ? (int) $e['ati_atendio_id'] : null;
+
             if (($adminId === null) === ($tiendaId === null)) {
                 $fallidas[] = ['id' => $e['id'] ?? null, 'folio' => $e['folio'] ?? null, 'error' => 'indica exactamente uno de tienda_id / administracion_id'];
                 continue;
@@ -130,6 +139,8 @@ class SyncApiController
                     'usuario_id' => $usuario['id'],
                     'tienda_id' => $esOficina ? null : $tiendaId,
                     'administracion_id' => $esOficina ? $adminId : null,
+                    'plaza_id' => $esOficina ? $plazaId : null,
+                    'ati_atendio_id' => $esOficina ? $atiAtendioId : null,
                     'cuestionario_id' => $e['cuestionario_id'],
                     'folio' => trim($e['folio']),
                     'comentario' => $e['comentario'] ?? null,

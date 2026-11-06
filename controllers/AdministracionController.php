@@ -3,15 +3,26 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../src/Auth.php';
 
-// Solo webmaster entra aqui (gestiona_usuarios). Es el catalogo de
-// areas administrativas de oficina (RH, Mantenimiento, Asesores...)
-// que se usa como "destino" en la encuesta de oficina, igual que las
-// tiendas lo son en la encuesta de tienda.
+// Catalogo de areas administrativas de oficina (RH, Mantenimiento,
+// Asesores...) que se usa como "destino" en la encuesta de oficina,
+// igual que las tiendas lo son en la de tienda. Es global para toda la
+// region -- por eso, ademas de gestiona_usuarios, solo lo administra
+// Rosa Ramirez (usuario 128), ver soloRosa().
 class AdministracionController
 {
+    private function soloRosa(): void
+    {
+        if ((int) ($_SESSION['usuario_id'] ?? 0) !== 128) {
+            http_response_code(403);
+            echo 'Las areas administrativas solo las administra Rosa Ramirez.';
+            exit;
+        }
+    }
+
     public function index(): void
     {
         Auth::requierePermiso('gestiona_usuarios');
+        $this->soloRosa();
         $pdo = Database::conexion();
 
         $areas = $pdo->query('
@@ -38,6 +49,7 @@ class AdministracionController
     public function crear(): void
     {
         Auth::requierePermiso('gestiona_usuarios');
+        $this->soloRosa();
         $nombre = trim($_POST['nombre'] ?? '');
 
         if ($nombre === '' || mb_strlen($nombre) > 120) {
@@ -67,6 +79,7 @@ class AdministracionController
     public function editar(): void
     {
         Auth::requierePermiso('gestiona_usuarios');
+        $this->soloRosa();
         $id = (int) ($_POST['id'] ?? 0);
         $nombre = trim($_POST['nombre'] ?? '');
 
@@ -107,6 +120,7 @@ class AdministracionController
     private function cambiarActivo(int $valor, string $mensaje): void
     {
         Auth::requierePermiso('gestiona_usuarios');
+        $this->soloRosa();
         $id = (int) ($_POST['id'] ?? 0);
         if ($id <= 0) {
             header('Location: ' . BASE_URL . '/administracion');
@@ -125,6 +139,7 @@ class AdministracionController
     public function eliminar(): void
     {
         Auth::requierePermiso('gestiona_usuarios');
+        $this->soloRosa();
         $id = (int) ($_POST['id'] ?? 0);
         if ($id <= 0) {
             header('Location: ' . BASE_URL . '/administracion');

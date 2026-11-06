@@ -34,6 +34,44 @@ class CatalogoApiController
         echo json_encode($filas);
     }
 
+    // GET /api/plazas-todas -- TODAS las plazas sin filtrar por region,
+    // igual que el formulario web publico (/encuesta-oficina): el
+    // selector de "centro de trabajo" de la encuesta de oficina en la
+    // app necesita las 4 completas, no solo la rama de la plaza propia
+    // del ATI que ya trae cacheada el sync normal.
+    public function plazasTodas(): void
+    {
+        if (!ApiAuth::usuarioDesdeToken()) { $this->noAutorizado(); return; }
+        $pdo = Database::conexion();
+        $filas = $pdo->query('SELECT id, nombre, cr, es_default FROM plaza ORDER BY nombre')->fetchAll();
+        foreach ($filas as &$f) { $f['es_default'] = (bool) $f['es_default']; }
+        echo json_encode($filas);
+    }
+
+    // GET /api/oficina/atis -- ATI + CoordinadorTI para el selector de
+    // "que ATI te atendio" de la encuesta de oficina (misma lista que
+    // EncuestaPublicaController::mostrar() en el formulario web publico).
+    // plaza_id viene NULL para los de alcance regional (CoordinadorTI);
+    // la app los agrupa igual que form.php: cada plaza + todos los
+    // regionales, y "Region Tamaulipas" con todos.
+    public function atisOficina(): void
+    {
+        if (!ApiAuth::usuarioDesdeToken()) { $this->noAutorizado(); return; }
+        $pdo = Database::conexion();
+        $filas = $pdo->query("
+            SELECT u.id, u.nombre_completo, u.foto_perfil, u.plaza_id
+            FROM usuario u
+            JOIN rol r ON r.id = u.rol_id
+            WHERE r.nombre IN ('ATI', 'CoordinadorTI')
+            ORDER BY u.nombre_completo
+        ")->fetchAll();
+        foreach ($filas as &$f) {
+            $f['id'] = (int) $f['id'];
+            $f['plaza_id'] = $f['plaza_id'] !== null ? (int) $f['plaza_id'] : null;
+        }
+        echo json_encode($filas);
+    }
+
     public function plazas(): void
     {
         if (!ApiAuth::usuarioDesdeToken()) { $this->noAutorizado(); return; }
