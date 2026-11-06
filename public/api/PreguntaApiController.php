@@ -3,13 +3,21 @@
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../src/ApiAuth.php';
 
+// Gestion de preguntas (tienda y oficina) desde la app: solo Rosa Ramirez
+// (usuario 128) las administra, igual que en el panel web
+// (PreguntaController::soloRosa()). gestiona_preguntas sigue siendo
+// requisito, pero ya no es suficiente por si solo.
 class PreguntaApiController
 {
+    private function autorizado(?array $u): bool
+    {
+        return $u !== null && $u['gestiona_preguntas'] && (int) $u['id'] === 128;
+    }
 
     public function crear(): void
     {
         $u = ApiAuth::usuarioDesdeToken();
-        if (!$u || !$u['gestiona_preguntas']) {
+        if (!$this->autorizado($u)) {
             http_response_code(401);
             echo json_encode(['error' => 'no autorizado']);
             return;
@@ -34,7 +42,7 @@ class PreguntaApiController
     public function editar(): void
     {
         $u = ApiAuth::usuarioDesdeToken();
-        if (!$u || !$u['gestiona_preguntas']) {
+        if (!$this->autorizado($u)) {
             http_response_code(401);
             echo json_encode(['error' => 'no autorizado']);
             return;
@@ -57,7 +65,7 @@ class PreguntaApiController
         $u = ApiAuth::usuarioDesdeToken();
         $id = (int) ($_GET['id'] ?? 0);
 
-        if (!$u || !$u['gestiona_preguntas']) {
+        if (!$this->autorizado($u)) {
             http_response_code(401);
             echo json_encode(['error' => 'no autorizado']);
             return;

@@ -309,9 +309,13 @@ class EncuestaSyncApiController
     }
 
     /**
-     * Módulo PFS: Listar encuestas pendientes de envío por tienda
+     * Modulo "Estado de Envios": lista las encuestas pendientes/enviadas
+     * del usuario logueado, hechas desde la app. Un PFS ve sus encuestas
+     * de TIENDA (sin tienda fija, visita varias); un ATI/CoordinadorTI ve
+     * sus encuestas de OFICINA (el "departamento" ocupa el mismo campo
+     * tienda_id/tienda_nombre que normalmente lleva la tienda -- misma
+     * forma de respuesta, mismo modulo/pantalla en la app para los dos).
      * GET /api/encuestas/pfs/pendientes
-     * Responde lista con estado de cada encuesta
      */
     public function listarPendientesPFS(): void
     {
@@ -322,42 +326,74 @@ class EncuestaSyncApiController
             return;
         }
 
-        if ($usuario['rol_nombre'] !== 'PFS') {
+        $esOficina = in_array($usuario['rol_nombre'], ['ATI', 'CoordinadorTI'], true);
+        if (!$esOficina && $usuario['rol_nombre'] !== 'PFS') {
             http_response_code(403);
-            echo json_encode(['error' => 'solo rol PFS puede acceder a este módulo']);
+            echo json_encode(['error' => 'este rol no tiene estado de envios']);
             return;
         }
 
         $pdo = Database::conexion();
 
         try {
-            // Un PFS ve SUS PROPIAS encuestas pendientes (las que el
-            // capturo), sin importar de que tienda sean -- no tiene una
-            // tienda fija asignada. Por eso cada fila trae su propia
-            // tienda_id/tienda_nombre en vez de un solo tienda_id global.
-            $stmt = $pdo->prepare('
-                SELECT
-                    e.id,
-                    e.tienda_id,
-                    t.nombre AS tienda_nombre,
-                    e.folio,
-                    e.fecha_creacion_local,
-                    e.comentario,
-                    e.sincronizado,
-                    esl.estado,
-                    esl.intento_numero,
-                    esl.mensaje_error,
-                    esl.fecha_intento,
-                    esl.fecha_confirmacion,
-                    COUNT(rd.id) as total_respuestas
-                FROM encuesta e
-                JOIN tienda t ON t.id = e.tienda_id
-                LEFT JOIN encuesta_sync_log esl ON esl.encuesta_id = e.id
-                LEFT JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
-                WHERE e.usuario_id = ?
-                GROUP BY e.id
-                ORDER BY e.fecha_creacion_local DESC
-            ');
+            if ($esOficina) {
+                // El ATI/CoordinadorTI ve SUS PROPIAS encuestas de oficina
+                // (las que el conteso desde la app, usuario_id propio) --
+                // no las que otros dijeron que el los atendio.
+                $sql = '
+                    SELECT
+                        e.id,
+                        e.administracion_id AS tienda_id,
+                        a.nombre AS tienda_nombre,
+                        e.folio,
+                        e.fecha_creacion_local,
+                        e.comentario,
+                        e.sincronizado,
+                        esl.estado,
+                        esl.intento_numero,
+                        esl.mensaje_error,
+                        esl.fecha_intento,
+                        esl.fecha_confirmacion,
+                        COUNT(rd.id) as total_respuestas
+                    FROM encuesta e
+                    JOIN administracion a ON a.id = e.administracion_id
+                    LEFT JOIN encuesta_sync_log esl ON esl.encuesta_id = e.id
+                    LEFT JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
+                    WHERE e.usuario_id = ?
+                    GROUP BY e.id
+                    ORDER BY e.fecha_creacion_local DESC
+                ';
+            } else {
+                // Un PFS ve SUS PROPIAS encuestas pendientes (las que el
+                // capturo), sin importar de que tienda sean -- no tiene una
+                // tienda fija asignada. Por eso cada fila trae su propia
+                // tienda_id/tienda_nombre en vez de un solo tienda_id global.
+                $sql = '
+                    SELECT
+                        e.id,
+                        e.tienda_id,
+                        t.nombre AS tienda_nombre,
+                        e.folio,
+                        e.fecha_creacion_local,
+                        e.comentario,
+                        e.sincronizado,
+                        esl.estado,
+                        esl.intento_numero,
+                        esl.mensaje_error,
+                        esl.fecha_intento,
+                        esl.fecha_confirmacion,
+                        COUNT(rd.id) as total_respuestas
+                    FROM encuesta e
+                    JOIN tienda t ON t.id = e.tienda_id
+                    LEFT JOIN encuesta_sync_log esl ON esl.encuesta_id = e.id
+                    LEFT JOIN respuesta_detalle rd ON rd.encuesta_id = e.id
+                    WHERE e.usuario_id = ?
+                    GROUP BY e.id
+                    ORDER BY e.fecha_creacion_local DESC
+                ';
+            }
+
+            $stmt = $pdo->prepare($sql);
             $stmt->execute([$usuario['id']]);
             $encuestas = $stmt->fetchAll();
 

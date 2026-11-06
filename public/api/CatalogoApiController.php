@@ -273,9 +273,12 @@ class CatalogoApiController
     {
         $usuario = ApiAuth::usuarioDesdeToken();
         if (!$usuario) { $this->noAutorizado(); return; }
-        if (!$usuario['contesta_oficina']) {
+        // Las areas administrativas son un catalogo global para toda la
+        // region -- solo Rosa Ramirez (usuario 128) las administra,
+        // igual que en el panel web (AdministracionController::soloRosa()).
+        if (!$usuario['contesta_oficina'] || (int) $usuario['id'] !== 128) {
             http_response_code(403);
-            echo json_encode(['error' => 'tu rol no puede dar de alta areas administrativas']);
+            echo json_encode(['error' => 'las areas administrativas solo las administra Rosa Ramirez']);
             return;
         }
 

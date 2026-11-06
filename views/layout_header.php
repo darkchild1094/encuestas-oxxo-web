@@ -50,7 +50,7 @@ $ver = static function (string $rel): string {
           <a class="nav-link<?= nav_activo('/dashboard') ?>" href="<?= BASE_URL ?>/dashboard"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Dashboard</a>
           <a class="nav-link<?= nav_activo('/respuestas') ?>" href="<?= BASE_URL ?>/respuestas"><i class="fa-solid fa-store" aria-hidden="true"></i> Respuestas</a>
         <?php endif; ?>
-        <?php if (!empty($_SESSION['gestiona_preguntas'])): ?>
+        <?php if (!empty($_SESSION['gestiona_preguntas']) && (int) ($_SESSION['usuario_id'] ?? 0) === 128): ?>
           <a class="nav-link<?= nav_activo('/preguntas') ?>" href="<?= BASE_URL ?>/preguntas"><i class="fa-solid fa-list-check" aria-hidden="true"></i> Preguntas</a>
         <?php endif; ?>
         <?php if (!empty($_SESSION['gestiona_usuarios'])): ?>

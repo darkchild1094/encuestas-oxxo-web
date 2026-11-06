@@ -3,11 +3,12 @@
   <div><p class="eyebrow">Configuración</p><h1>Preguntas</h1></div>
 </div>
 
+<!-- Toda esta pagina es solo-Rosa (ver PreguntaController::soloRosa()),
+     asi que ambas pestañas se muestran siempre: quien la ve, puede ver
+     las dos. -->
 <nav class="ambito-toggle" aria-label="Tipo de encuesta">
   <a class="nav-link <?= $ambito === 'tiendas' ? 'active' : '' ?>" href="<?= BASE_URL ?>/preguntas?ambito=tiendas">Tiendas</a>
-  <?php if ((int) ($_SESSION['usuario_id'] ?? 0) === 128): ?>
-    <a class="nav-link <?= $ambito === 'oficina' ? 'active' : '' ?>" href="<?= BASE_URL ?>/preguntas?ambito=oficina">Oficina</a>
-  <?php endif; ?>
+  <a class="nav-link <?= $ambito === 'oficina' ? 'active' : '' ?>" href="<?= BASE_URL ?>/preguntas?ambito=oficina">Oficina</a>
 </nav>
 
 <?php if ($ambito === 'oficina'): ?>
